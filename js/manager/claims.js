@@ -1,345 +1,475 @@
 document.addEventListener("DOMContentLoaded", () => {
     if (window.lucide) lucide.createIcons();
 
-    const tableBody = document.getElementById("claimsTableBody");
-    const emptyState = document.getElementById("emptyState");
-    const modal = document.getElementById("claimModal");
-
-    const globalSearch = document.getElementById("globalSearch");
-    const searchInput = document.getElementById("searchInput");
-    const categoryFilter = document.getElementById("categoryFilter");
-    const fromDate = document.getElementById("fromDate");
-    const resetFiltersBtn = document.getElementById("resetFiltersBtn");
-    const refreshBtn = document.getElementById("refreshBtn");
-
-    const mEmployeeName = document.getElementById("mEmployeeName");
-    const mEmployeeCode = document.getElementById("mEmployeeCode");
-    const mDepartmentName = document.getElementById("mDepartmentName");
-    const mPositionName = document.getElementById("mPositionName");
-    const mCategory = document.getElementById("mCategory");
-    const mAmount = document.getElementById("mAmount");
-    const mClaimDate = document.getElementById("mClaimDate");
-    const mStatusText = document.getElementById("mStatusText");
-    const mDescription = document.getElementById("mDescription");
-    const mProofBox = document.getElementById("mProofBox");
-    const mOfficerNotes = document.getElementById("mOfficerNotes");
-    const hrRemarks = document.getElementById("hrRemarks");
-
-    const approveBtn = document.getElementById("approveBtn");
-    const rejectBtn = document.getElementById("rejectBtn");
-    const closeModalBtn = document.getElementById("closeModalBtn");
-    const closeModalFooterBtn = document.getElementById("closeModalFooterBtn");
-    const modalActionButtons = document.getElementById("modalActionButtons");
-
-    const countForApproval = document.getElementById("countForApproval");
-    const countApproved = document.getElementById("countApproved");
-    const countRejected = document.getElementById("countRejected");
-    const countPaid = document.getElementById("countPaid");
-
-    let currentStatusFilter = "APPROVED_BY_OFFICER";
-    let activeClaimId = null;
-    let allClaims = [];
-    let visibleClaims = [];
-
-    function formatMoney(value) {
-        return "₱" + Number(value || 0).toLocaleString("en-PH", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+    const themeBtn = document.getElementById("themeToggle");
+    if (themeBtn) {
+        themeBtn.addEventListener("click", () => {
+            document.documentElement.classList.toggle("dark-mode");
+            document.body.classList.toggle("dark-mode");
         });
     }
 
-    function escapeHtml(text) {
-        const div = document.createElement("div");
-        div.textContent = text ?? "";
-        return div.innerHTML;
+    initClaimsModule();
+});
+
+function swalThemeOptions() {
+    const isDark =
+        document.documentElement.classList.contains("dark-mode") ||
+        document.body.classList.contains("dark-mode");
+
+    return isDark
+        ? {
+              background: "#1a1a1a",
+              color: "#f9fafb",
+              confirmButtonColor: "#2ca078",
+              cancelButtonColor: "#6b7280"
+          }
+        : {
+              confirmButtonColor: "#2ca078",
+              cancelButtonColor: "#6b7280"
+          };
+}
+
+let allRows = [];
+let activeStatusTab = "APPROVED_BY_OFFICER";
+let activeRow = null;
+
+const tbody = document.getElementById("claimsTableBody");
+const emptyState = document.getElementById("emptyState");
+
+const countForApproval = document.getElementById("countForApproval");
+const countApproved = document.getElementById("countApproved");
+const countRejected = document.getElementById("countRejected");
+const countPaid = document.getElementById("countPaid");
+
+const tabs = document.querySelectorAll(".tab-btn");
+const searchInput = document.getElementById("searchInput");
+const globalSearch = document.getElementById("globalSearch");
+const categoryFilter = document.getElementById("categoryFilter");
+const fromDate = document.getElementById("fromDate");
+const resetFiltersBtn = document.getElementById("resetFiltersBtn");
+const refreshBtn = document.getElementById("refreshBtn");
+
+const claimModal = document.getElementById("claimModal");
+const closeModalBtn = document.getElementById("closeModalBtn");
+const closeModalFooterBtn = document.getElementById("closeModalFooterBtn");
+const approveBtn = document.getElementById("approveBtn");
+const rejectBtn = document.getElementById("rejectBtn");
+const modalActionButtons = document.getElementById("modalActionButtons");
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function formatMoney(value) {
+    const num = Number(value || 0);
+    return num.toLocaleString("en-PH", {
+        style: "currency",
+        currency: "PHP"
+    });
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+}
+
+function formatDateTime(dateStr) {
+    if (!dateStr) return "-";
+    const normalized = dateStr.replace(" ", "T");
+    const d = new Date(normalized);
+    return d.toLocaleString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+    });
+}
+
+function badgeLabel(status) {
+    switch (status) {
+        case "APPROVED_BY_OFFICER":
+            return "For Approval";
+        case "APPROVED_BY_HR":
+            return "Approved";
+        case "REJECTED":
+            return "Rejected";
+        case "PAID":
+            return "Paid";
+        case "PENDING":
+            return "Pending";
+        case "CANCELLED":
+            return "Cancelled";
+        default:
+            return status || "-";
+    }
+}
+
+function statusClass(status) {
+    switch (status) {
+        case "APPROVED_BY_OFFICER":
+            return "status-pending";
+        case "APPROVED_BY_HR":
+            return "status-approved";
+        case "REJECTED":
+            return "status-rejected";
+        case "PAID":
+            return "status-paid";
+        default:
+            return "status-cancelled";
+    }
+}
+
+async function fetchClaimsData() {
+    const res = await fetch("includes/claims_data.php", {
+        method: "GET",
+        headers: { Accept: "application/json" }
+    });
+
+    let data;
+    try {
+        data = await res.json();
+    } catch (e) {
+        throw new Error("Invalid server response.");
     }
 
-    function statusLabel(status) {
-        switch (status) {
-            case "APPROVED_BY_OFFICER": return "Approved by Officer";
-            case "APPROVED_BY_HR": return "Approved by HR Manager";
-            case "REJECTED": return "Rejected";
-            case "PAID": return "Paid";
-            case "PENDING": return "Pending";
-            case "CANCELLED": return "Cancelled";
-            default: return status;
-        }
+    if (!res.ok || !data.ok) {
+        throw new Error(data.message || "Failed to load claims data.");
     }
 
-    function statusClass(status) {
-        switch (status) {
-            case "APPROVED_BY_OFFICER": return "status-sent";
-            case "APPROVED_BY_HR": return "status-approved";
-            case "REJECTED": return "status-rejected";
-            case "PAID": return "status-paid";
-            case "PENDING": return "status-pending";
-            default: return "status-cancelled";
-        }
-    }
+    return data;
+}
 
-    function categoryLabel(category) {
-        switch (category) {
-            case "GAS": return "Gas";
-            case "LOAD": return "Load";
-            case "TRAVEL": return "Travel";
-            case "SUPPLIES": return "Supplies";
-            case "OTHERS": return "Others";
-            default: return category;
-        }
-    }
+function renderSummary(summary) {
+    countForApproval.textContent = summary.for_approval ?? 0;
+    countApproved.textContent = summary.approved ?? 0;
+    countRejected.textContent = summary.rejected ?? 0;
+    countPaid.textContent = summary.paid ?? 0;
+}
 
-    function categoryClass(category) {
-        switch (category) {
-            case "GAS": return "cat-gas";
-            case "LOAD": return "cat-load";
-            case "TRAVEL": return "cat-travel";
-            case "SUPPLIES": return "cat-supplies";
-            default: return "cat-others";
-        }
-    }
+function buildRow(row) {
+    const tr = document.createElement("tr");
 
-    async function fetchClaims(status = "APPROVED_BY_OFFICER") {
-        try {
-            const res = await fetch(`claims_data.php?status=${encodeURIComponent(status)}`);
-            const data = await res.json();
+    tr.innerHTML = `
+        <td>
+            <div class="emp-name">${escapeHtml(row.EmployeeName || "-")}</div>
+            <div class="subtext">${escapeHtml(row.EmployeeCode || "-")}</div>
+        </td>
+        <td>
+            <strong>${escapeHtml(row.DepartmentName || "-")}</strong>
+            <div class="subtext">${escapeHtml(row.PositionName || "-")}</div>
+        </td>
+        <td>
+            <strong>${escapeHtml(row.Category || "-")}</strong>
+            <div class="subtext">Officer: ${escapeHtml(row.OfficerApprovedByName || "-")}</div>
+        </td>
+        <td>
+            <strong>${escapeHtml(formatMoney(row.Amount))}</strong>
+        </td>
+        <td>
+            <strong>${escapeHtml(formatDate(row.ClaimDate))}</strong>
+        </td>
+        <td>
+            <span class="status-badge ${statusClass(row.Status)}">
+                ${escapeHtml(badgeLabel(row.Status))}
+            </span>
+        </td>
+        <td>
+            <strong>${escapeHtml(formatDate((row.CreatedAt || "").split(" ")[0] || ""))}</strong>
+            <div class="subtext">${escapeHtml(formatDateTime(row.CreatedAt))}</div>
+        </td>
+        <td>
+            <button class="btn-view" type="button">View</button>
+        </td>
+    `;
 
-            if (!data.ok) {
-                Swal.fire("Error", data.message || "Failed to load claims.", "error");
-                return;
-            }
+    tr.querySelector(".btn-view").addEventListener("click", () => openModal(row));
+    return tr;
+}
 
-            allClaims = data.claims || [];
-            applyFilters();
-            updateCounters();
-        } catch (error) {
-            console.error(error);
-            Swal.fire("Error", "Unable to fetch claims.", "error");
-        }
-    }
+function passesDateFilter(rowDate, fromVal) {
+    if (!fromVal) return true;
+    const d = new Date((rowDate || "") + "T00:00:00");
+    const from = new Date(fromVal + "T00:00:00");
+    return d >= from;
+}
 
-    function renderTable(rows) {
-        tableBody.innerHTML = "";
+function renderTable() {
+    tbody.innerHTML = "";
 
-        if (!rows.length) {
-            emptyState.style.display = "block";
-            return;
-        }
+    let rows = [...allRows];
+    const searchVal = (searchInput.value || globalSearch.value || "").trim().toLowerCase();
+    const categoryVal = categoryFilter.value;
+    const fromVal = fromDate.value;
 
-        emptyState.style.display = "none";
+    rows = rows.filter((row) => {
+        const matchesTab = activeStatusTab === "ALL" ? true : row.Status === activeStatusTab;
 
-        rows.forEach(claim => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>
-                    <div class="emp-name">${escapeHtml(claim.EmployeeName)}</div>
-                    <div class="subtext">${escapeHtml(claim.EmployeeCode || "-")}</div>
-                </td>
-                <td>
-                    <div class="emp-name">${escapeHtml(claim.DepartmentName || "-")}</div>
-                    <div class="subtext">${escapeHtml(claim.PositionName || "-")}</div>
-                </td>
-                <td>
-                    <span class="category-badge ${categoryClass(claim.Category)}">
-                        ${escapeHtml(categoryLabel(claim.Category))}
-                    </span>
-                </td>
-                <td><strong>${formatMoney(claim.Amount)}</strong></td>
-                <td>${escapeHtml(claim.ClaimDate || "-")}</td>
-                <td>
-                    <span class="status-badge ${statusClass(claim.Status)}">
-                        ${escapeHtml(statusLabel(claim.Status))}
-                    </span>
-                </td>
-                <td>${escapeHtml(claim.CreatedAt || "-")}</td>
-                <td>
-                    <button class="btn-view" type="button">View</button>
-                </td>
-            `;
+        const haystack = [
+            row.EmployeeName,
+            row.EmployeeCode,
+            row.DepartmentName,
+            row.PositionName,
+            row.Category,
+            row.Description,
+            row.OfficerApprovedByName
+        ].join(" ").toLowerCase();
 
-            tr.querySelector(".btn-view").addEventListener("click", () => openModal(claim));
-            tableBody.appendChild(tr);
-        });
+        const matchesSearch = !searchVal || haystack.includes(searchVal);
+        const matchesCategory = categoryVal === "ALL" ? true : row.Category === categoryVal;
+        const matchesDate = passesDateFilter(row.ClaimDate, fromVal);
 
-        if (window.lucide) lucide.createIcons();
-    }
+        return matchesTab && matchesSearch && matchesCategory && matchesDate;
+    });
 
-    function applyFilters() {
-        const textA = (searchInput.value || "").trim().toLowerCase();
-        const textB = (globalSearch.value || "").trim().toLowerCase();
-        const searchText = textA || textB;
-        const category = categoryFilter.value;
-        const dateValue = fromDate.value;
+    rows.forEach((row) => tbody.appendChild(buildRow(row)));
 
-        visibleClaims = allClaims.filter(claim => {
-            const haystack = [
-                claim.EmployeeName,
-                claim.EmployeeCode,
-                claim.DepartmentName,
-                claim.PositionName,
-                claim.Category,
-                claim.Description
-            ]
-            .join(" ")
-            .toLowerCase();
+    emptyState.style.display = rows.length === 0 ? "block" : "none";
 
-            const matchSearch = !searchText || haystack.includes(searchText);
-            const matchCategory = category === "ALL" || claim.Category === category;
-            const matchDate = !dateValue || claim.ClaimDate === dateValue;
+    if (window.lucide) lucide.createIcons();
+}
 
-            return matchSearch && matchCategory && matchDate;
-        });
+function openModal(data) {
+    activeRow = data;
 
-        renderTable(visibleClaims);
-    }
+    document.getElementById("mEmployeeName").textContent = data.EmployeeName || "-";
+    document.getElementById("mEmployeeCode").textContent = data.EmployeeCode || "-";
+    document.getElementById("mDepartmentName").textContent = data.DepartmentName || "-";
+    document.getElementById("mPositionName").textContent = data.PositionName || "-";
 
-    function updateCounters() {
-        let forApproval = 0;
-        let approved = 0;
-        let rejected = 0;
-        let paid = 0;
+    document.getElementById("mCategory").textContent = data.Category || "-";
+    document.getElementById("mAmount").textContent = formatMoney(data.Amount);
+    document.getElementById("mClaimDate").textContent = formatDate(data.ClaimDate);
+    document.getElementById("mStatusText").textContent = badgeLabel(data.Status);
+    document.getElementById("mDescription").textContent = data.Description || "No description provided.";
 
-        allClaims.forEach(claim => {
-            if (claim.Status === "APPROVED_BY_OFFICER") forApproval++;
-            if (claim.Status === "APPROVED_BY_HR") approved++;
-            if (claim.Status === "REJECTED") rejected++;
-            if (claim.Status === "PAID") paid++;
-        });
+    const officerNotesText = [
+        data.OfficerApprovedByName ? `Approved by: ${data.OfficerApprovedByName}` : "Approved by: -",
+        data.OfficerNotes ? `Notes: ${data.OfficerNotes}` : "Notes: No officer notes."
+    ].join("\n");
 
-        countForApproval.textContent = forApproval;
-        countApproved.textContent = approved;
-        countRejected.textContent = rejected;
-        countPaid.textContent = paid;
-    }
+    document.getElementById("mOfficerNotes").textContent = officerNotesText;
+    document.getElementById("hrRemarks").value = data.HRNotes || "";
 
-    function openModal(claim) {
-        activeClaimId = claim.ClaimID;
-
-        mEmployeeName.textContent = claim.EmployeeName || "-";
-        mEmployeeCode.textContent = claim.EmployeeCode || "-";
-        mDepartmentName.textContent = claim.DepartmentName || "-";
-        mPositionName.textContent = claim.PositionName || "-";
-        mCategory.textContent = categoryLabel(claim.Category);
-        mAmount.textContent = formatMoney(claim.Amount);
-        mClaimDate.textContent = claim.ClaimDate || "-";
-        mStatusText.textContent = statusLabel(claim.Status);
-        mDescription.textContent = claim.Description || "-";
-        mOfficerNotes.textContent = claim.OfficerNotes?.trim() || "No officer notes.";
-        hrRemarks.value = claim.HRNotes || "";
-
-        if (claim.ReceiptImage) {
-            mProofBox.innerHTML = `
-                <div class="proof-preview">
-                    <div>
-                        <div style="font-weight:700;">${escapeHtml(claim.ReceiptImage)}</div>
-                    </div>
-                    <a class="btn btn-soft" href="../../${encodeURI(claim.ReceiptImage)}" target="_blank">View</a>
+    const proofBox = document.getElementById("mProofBox");
+    if (data.ReceiptImage && data.ReceiptImage.trim() !== "") {
+        const imgSrc = "../../" + data.ReceiptImage.replace(/^\/+/, "");
+        proofBox.innerHTML = `
+            <div style="display:grid; gap:12px;">
+                <img src="${encodeURI(imgSrc)}" alt="Claim proof"
+                     style="width:100%; max-height:320px; object-fit:contain; border-radius:10px; border:1px solid var(--border-color); background:var(--surface);">
+                <div style="display:flex; justify-content:flex-end;">
+                    <a class="btn btn-soft" href="${encodeURI(imgSrc)}" target="_blank">Open Proof</a>
                 </div>
-            `;
-        } else {
-            mProofBox.innerHTML = `<span class="proof-empty">No proof uploaded</span>`;
-        }
-
-        if (claim.Status === "APPROVED_BY_OFFICER") {
-            modalActionButtons.style.display = "flex";
-        } else {
-            modalActionButtons.style.display = "none";
-        }
-
-        modal.classList.add("show");
-        if (window.lucide) lucide.createIcons();
+            </div>
+        `;
+    } else {
+        proofBox.innerHTML = `<span class="attachment-empty">No proof uploaded</span>`;
     }
 
-    async function submitAction(action) {
-        if (!activeClaimId) return;
+    const canAct = data.Status === "APPROVED_BY_OFFICER";
+    modalActionButtons.style.display = canAct ? "flex" : "none";
+    document.getElementById("hrRemarks").disabled = !canAct;
 
-        const formData = new URLSearchParams();
-        formData.append("action", action);
-        formData.append("claim_id", activeClaimId);
-        formData.append("notes", hrRemarks.value.trim());
+    claimModal.classList.add("show");
+    document.body.style.overflow = "hidden";
 
-        try {
-            const res = await fetch("claims_data.php", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
-                },
-                body: formData.toString()
-            });
+    if (window.lucide) lucide.createIcons();
+}
 
-            const data = await res.json();
+function closeModal() {
+    claimModal.classList.remove("show");
+    document.body.style.overflow = "";
+    activeRow = null;
+}
 
-            if (!data.ok) {
-                Swal.fire("Error", data.message || "Action failed.", "error");
-                return;
-            }
+async function updateClaimStatus(actionType) {
+    if (!activeRow?.ClaimID) return;
 
-            Swal.fire("Success", data.message, "success");
-            modal.classList.remove("show");
-            fetchClaims(currentStatusFilter);
-        } catch (error) {
-            console.error(error);
-            Swal.fire("Error", "Unable to process request.", "error");
-        }
+    const remarks = document.getElementById("hrRemarks").value.trim();
+
+    const formData = new FormData();
+    formData.append("claim_id", activeRow.ClaimID);
+    formData.append("action", actionType);
+    formData.append("remarks", remarks);
+
+    const res = await fetch("includes/claims_data.php", {
+        method: "POST",
+        body: formData
+    });
+
+    let data;
+    try {
+        data = await res.json();
+    } catch (e) {
+        throw new Error("Invalid server response.");
     }
 
-    approveBtn?.addEventListener("click", async () => {
-        const result = await Swal.fire({
-            title: "Approve claim?",
-            text: "This will mark the claim as approved by HR Manager.",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonText: "Approve"
-        });
+    if (!res.ok || !data.ok) {
+        throw new Error(data.message || "Failed to update claim.");
+    }
 
-        if (result.isConfirmed) {
-            submitAction("approve");
-        }
-    });
+    return data;
+}
 
-    rejectBtn?.addEventListener("click", async () => {
-        const result = await Swal.fire({
-            title: "Reject claim?",
-            text: "This will reject the selected claim.",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Reject"
-        });
+async function loadClaimsData() {
+    const data = await fetchClaimsData();
+    allRows = Array.isArray(data.rows) ? data.rows : [];
+    renderSummary(data.summary || {});
+    renderTable();
+}
 
-        if (result.isConfirmed) {
-            submitAction("reject");
-        }
-    });
-
-    closeModalBtn?.addEventListener("click", () => modal.classList.remove("show"));
-    closeModalFooterBtn?.addEventListener("click", () => modal.classList.remove("show"));
-
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            currentStatusFilter = btn.dataset.status || "APPROVED_BY_OFFICER";
-            fetchClaims(currentStatusFilter);
+function bindEvents() {
+    tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+            tabs.forEach((t) => t.classList.remove("active"));
+            tab.classList.add("active");
+            activeStatusTab = tab.dataset.status;
+            renderTable();
         });
     });
 
-    [searchInput, globalSearch].forEach(input => {
-        input?.addEventListener("input", applyFilters);
+    [searchInput, globalSearch].forEach((input) => {
+        input.addEventListener("input", () => {
+            if (input === globalSearch) searchInput.value = globalSearch.value;
+            else globalSearch.value = searchInput.value;
+            renderTable();
+        });
     });
 
-    categoryFilter?.addEventListener("change", applyFilters);
-    fromDate?.addEventListener("change", applyFilters);
+    categoryFilter.addEventListener("change", renderTable);
+    fromDate.addEventListener("change", renderTable);
 
-    resetFiltersBtn?.addEventListener("click", () => {
+    resetFiltersBtn.addEventListener("click", () => {
         searchInput.value = "";
         globalSearch.value = "";
         categoryFilter.value = "ALL";
         fromDate.value = "";
-        applyFilters();
+        activeStatusTab = "APPROVED_BY_OFFICER";
+
+        tabs.forEach((t) => t.classList.remove("active"));
+        document.querySelector('.tab-btn[data-status="APPROVED_BY_OFFICER"]')?.classList.add("active");
+
+        renderTable();
     });
 
-    refreshBtn?.addEventListener("click", () => {
-        fetchClaims(currentStatusFilter);
+    refreshBtn.addEventListener("click", async () => {
+        try {
+            await loadClaimsData();
+        } catch (err) {
+            Swal.fire({
+                ...swalThemeOptions(),
+                icon: "error",
+                title: "Load failed",
+                text: err.message
+            });
+        }
     });
 
-    fetchClaims(currentStatusFilter);
-});
+    closeModalBtn.addEventListener("click", closeModal);
+    closeModalFooterBtn.addEventListener("click", closeModal);
+
+    claimModal.addEventListener("click", (e) => {
+        if (e.target === claimModal) closeModal();
+    });
+
+    approveBtn.addEventListener("click", async () => {
+        if (!activeRow) return;
+
+        const result = await Swal.fire({
+            ...swalThemeOptions(),
+            icon: "question",
+            title: "Approve claim?",
+            text: "This will approve the claim at HR Manager level.",
+            showCancelButton: true,
+            confirmButtonText: "Yes, approve",
+            cancelButtonText: "Cancel"
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            await updateClaimStatus("approve");
+
+            await Swal.fire({
+                ...swalThemeOptions(),
+                icon: "success",
+                title: "Approved",
+                text: "Claim has been approved by HR Manager."
+            });
+
+            closeModal();
+            await loadClaimsData();
+        } catch (err) {
+            Swal.fire({
+                ...swalThemeOptions(),
+                icon: "error",
+                title: "Update failed",
+                text: err.message
+            });
+        }
+    });
+
+    rejectBtn.addEventListener("click", async () => {
+        if (!activeRow) return;
+
+        const result = await Swal.fire({
+            ...swalThemeOptions(),
+            icon: "warning",
+            title: "Reject claim?",
+            text: "This action cannot be undone.",
+            showCancelButton: true,
+            confirmButtonText: "Yes, reject",
+            cancelButtonText: "Cancel"
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            await updateClaimStatus("reject");
+
+            await Swal.fire({
+                ...swalThemeOptions(),
+                icon: "success",
+                title: "Rejected",
+                text: "Claim has been rejected by HR Manager."
+            });
+
+            closeModal();
+            await loadClaimsData();
+        } catch (err) {
+            Swal.fire({
+                ...swalThemeOptions(),
+                icon: "error",
+                title: "Update failed",
+                text: err.message
+            });
+        }
+    });
+}
+
+async function initClaimsModule() {
+    bindEvents();
+
+    try {
+        await loadClaimsData();
+    } catch (err) {
+        Swal.fire({
+            ...swalThemeOptions(),
+            icon: "error",
+            title: "Load failed",
+            text: err.message
+        });
+    }
+}

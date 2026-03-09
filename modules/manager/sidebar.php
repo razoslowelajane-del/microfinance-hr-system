@@ -13,8 +13,8 @@ function isActive($page, $current) {
 }
 
 // Helper para i-check kung dapat nakabukas ang Submenu
-$isWorkforceOpen = in_array($current_page, ['roster_review.php']);
-$isRequestsOpen = in_array($current_page, ['leave_review.php', 'claims_review.php']);
+$isWorkforceOpen = in_array($current_page, ['roster.php']);
+$isRequestsOpen = in_array($current_page, ['leave.php', 'claims.php']);
 ?>
 
 <link rel="stylesheet" href="../../css/manager/sidebar.css?v=1.0">
@@ -57,7 +57,7 @@ $isRequestsOpen = in_array($current_page, ['leave_review.php', 'claims_review.ph
 
                 <div class="submenu <?php echo $isWorkforceOpen ? 'active' : ''; ?>" id="submenu-workforce">
 
-                    <a href="roster_review.php" class="submenu-item <?php echo isActive('roster_review.php', $current_page); ?>">
+                    <a href="roster.php" class="submenu-item <?php echo isActive('roster.php', $current_page); ?>">
                         <i data-lucide="calendar-check"></i>
                         <span>Review Rosters</span>
                     </a>
@@ -77,12 +77,12 @@ $isRequestsOpen = in_array($current_page, ['leave_review.php', 'claims_review.ph
 
                 <div class="submenu <?php echo $isRequestsOpen ? 'active' : ''; ?>" id="submenu-requests">
 
-                    <a href="leave_review.php" class="submenu-item <?php echo isActive('leave_review.php', $current_page); ?>">
+                    <a href="leave.php" class="submenu-item <?php echo isActive('leave.php', $current_page); ?>">
                         <i data-lucide="calendar-clock"></i>
                         <span>Leave Requests</span>
                     </a>
 
-                    <a href="claims_review.php" class="submenu-item <?php echo isActive('claims_review.php', $current_page); ?>">
+                    <a href="claims.php" class="submenu-item <?php echo isActive('claims.php', $current_page); ?>">
                         <i data-lucide="receipt"></i>
                         <span>Reimbursement Claims</span>
                     </a>

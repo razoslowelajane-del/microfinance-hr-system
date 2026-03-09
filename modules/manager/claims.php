@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/includes/auth_officer.php";
+require_once __DIR__ . "/includes/auth_hr_manager.php";
 
 $deptName = $_SESSION['department_name'] ?? 'HR Department';
 ?>
@@ -11,7 +11,7 @@ $deptName = $_SESSION['department_name'] ?? 'HR Department';
     <title>Claims Review | <?php echo htmlspecialchars($deptName); ?></title>
 
     <link rel="icon" type="image/png" href="../../img/logo.png">
-    <link rel="stylesheet" href="../../css/officer/claims.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../../css/manager/claims.css?v=<?php echo time(); ?>">
 
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
