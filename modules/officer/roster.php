@@ -29,7 +29,7 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
       <h1>Roster Scheduler</h1>
 
       <div class="page-top-meta">
-        <span class="status-badge draft">
+        <span class="status-badge draft" id="headerRosterStatus">
           <i data-lucide="file-clock" class="meta-icon"></i>
           Draft Roster
         </span>
@@ -41,7 +41,7 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
 
         <span class="mini-info">
           <i data-lucide="calendar-range" class="meta-icon"></i>
-          12-day / month-end cutoff
+          2 full work weeks (Mon–Sat)
         </span>
       </div>
     </div>
@@ -74,16 +74,16 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
           <i data-lucide="users" class="stat-icon"></i>
         </div>
         <strong class="stat-value" id="statEmployees">--</strong>
-        <p class="stat-subtext">Employees included in this roster</p>
+        <p class="stat-subtext">Valid department employees included in this roster</p>
       </div>
 
       <div class="stat-card">
         <div class="stat-top">
-          <span class="stat-label">Coverage</span>
+          <span class="stat-label">Coverage Period</span>
           <i data-lucide="calendar-days" class="stat-icon"></i>
         </div>
         <strong class="stat-value" id="statCoverage">--</strong>
-        <p class="stat-subtext">Current scheduling cutoff period</p>
+        <p class="stat-subtext">Fixed 2-week Monday–Saturday work schedule</p>
       </div>
 
       <div class="stat-card">
@@ -92,7 +92,7 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
           <i data-lucide="alert-circle" class="stat-icon"></i>
         </div>
         <strong class="stat-value" id="statUnassigned">--</strong>
-        <p class="stat-subtext">Cells still needing assignment</p>
+        <p class="stat-subtext">Editable cells still needing assignment</p>
       </div>
 
       <div class="stat-card">
@@ -101,14 +101,21 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
           <i data-lucide="clipboard-check" class="stat-icon"></i>
         </div>
         <strong class="stat-value" id="statRosterStatus">Draft</strong>
-        <p class="stat-subtext">Not yet submitted to HR Manager</p>
+        <p class="stat-subtext">Create, review, then submit to HR Manager</p>
       </div>
     </div>
 
     <aside class="shift-sidebar">
       <div class="shift-sidebar-head">
-        <h3>Available Shifts</h3>
-        <p>Select one shift, then click cells to assign faster.</p>
+        <div>
+          <h3>Available Shifts</h3>
+          <p>Select one shift, then click editable cells to assign faster.</p>
+        </div>
+
+        <div class="sidebar-mini-note">
+          <i data-lucide="shield-check"></i>
+          <span>Leave, holiday, and self-locked cells are protected.</span>
+        </div>
       </div>
 
       <div id="shiftSelector" class="shift-selector">
@@ -121,7 +128,9 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
         <div class="card-header-top">
           <div>
             <h3 class="card-title">Duty Assignments</h3>
-            <p class="card-subtitle">Manage department schedule for the current cutoff period.</p>
+            <p class="card-subtitle">
+              Manage the department roster for a fixed 2-week Monday–Saturday period.
+            </p>
           </div>
 
           <div class="roster-controls">
@@ -141,17 +150,17 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
           <div class="toolbar-left">
             <button class="btn-secondary" id="btnFillAll" type="button">
               <i data-lucide="wand-2"></i>
-              <span>Fill All (Range)</span>
+              <span>Fill Editable Range</span>
             </button>
 
             <button class="btn-secondary" id="btnAiSuggest" type="button">
               <i data-lucide="sparkles"></i>
-              <span>AI Suggest</span>
+              <span>AI Suggest &amp; Review</span>
             </button>
 
             <button class="btn-secondary" id="btnClearRange" type="button">
               <i data-lucide="eraser"></i>
-              <span>Clear Range</span>
+              <span>Clear Editable Range</span>
             </button>
           </div>
 
@@ -176,17 +185,85 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
               <span class="legend-dot leave"></span>
               Leave
             </span>
+            <span class="legend-item">
+              <span class="legend-dot ai"></span>
+              AI Suggested
+            </span>
           </div>
         </div>
       </div>
 
       <div class="card-body">
+        <div id="aiReviewPanel" class="ai-review-panel hidden">
+          <div class="ai-review-head">
+            <div>
+              <h4>AI Review Summary</h4>
+              <p>Review AI suggestions, fairness, coverage, and warnings before applying changes.</p>
+            </div>
+
+            <div class="ai-review-actions">
+              <button type="button" class="btn-secondary" id="btnDismissAiReview">
+                <i data-lucide="x"></i>
+                <span>Dismiss</span>
+              </button>
+
+              <button type="button" class="btn-primary" id="btnApplyAiSuggestions">
+                <i data-lucide="check-check"></i>
+                <span>Apply Suggestions</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="ai-review-grid">
+            <div class="review-metric">
+              <span class="review-label">Employees Included</span>
+              <strong id="aiEmployeesIncluded">--</strong>
+            </div>
+            <div class="review-metric">
+              <span class="review-label">Officer Self Included</span>
+              <strong id="aiSelfIncluded">--</strong>
+            </div>
+            <div class="review-metric">
+              <span class="review-label">Fairness Score</span>
+              <strong id="aiFairnessScore">--</strong>
+            </div>
+            <div class="review-metric">
+              <span class="review-label">Coverage Score</span>
+              <strong id="aiCoverageScore">--</strong>
+            </div>
+            <div class="review-metric">
+              <span class="review-label">Compliance Score</span>
+              <strong id="aiComplianceScore">--</strong>
+            </div>
+            <div class="review-metric">
+              <span class="review-label">Unassigned Remaining</span>
+              <strong id="aiUnassignedRemaining">--</strong>
+            </div>
+          </div>
+
+          <div class="ai-review-columns">
+            <div class="review-list-card">
+              <h5>Warnings</h5>
+              <ul id="aiWarningsList" class="review-list">
+                <li>No AI review data yet.</li>
+              </ul>
+            </div>
+
+            <div class="review-list-card">
+              <h5>Errors / Conflicts</h5>
+              <ul id="aiErrorsList" class="review-list">
+                <li>No AI review data yet.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         <div class="roster-table-wrapper">
           <table class="roster-table">
             <thead id="rosterHead"></thead>
             <tbody id="rosterBody">
               <tr>
-                <td style="text-align:center; padding: 30px;">Loading schedules…</td>
+                <td style="text-align:center; padding:30px;">Loading schedules…</td>
               </tr>
             </tbody>
           </table>
@@ -195,7 +272,7 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
         <div class="helper-note">
           <i data-lucide="info"></i>
           <span>
-            Note: Your own row is locked. Sundays are skipped. Approved leave dates appear as LEAVE and cannot be scheduled.
+            Your own row is included in the roster and may be auto-filled by AI, but it is locked for manual editing. Sundays are skipped. Approved leave dates appear as LEAVE and cannot be scheduled.
           </span>
         </div>
       </div>
@@ -207,7 +284,16 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
   window.__ROSTER_CTX__ = {
     deptId: <?php echo $deptId ? (int)$deptId : 'null'; ?>,
     accountId: <?php echo $accountId ? (int)$accountId : 'null'; ?>,
-    myEmpId: <?php echo $myEmpId ? (int)$myEmpId : 'null'; ?>
+    myEmpId: <?php echo $myEmpId ? (int)$myEmpId : 'null'; ?>,
+    rules: {
+      fixedPeriodDays: 12,
+      workDays: ["MON", "TUE", "WED", "THU", "FRI", "SAT"],
+      skipSunday: true,
+      selfRowManualLocked: true,
+      leaveLocked: true,
+      holidayLocked: true,
+      aiReviewFirst: true
+    }
   };
 
   document.addEventListener("DOMContentLoaded", function () {
