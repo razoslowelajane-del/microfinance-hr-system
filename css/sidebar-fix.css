@@ -1,0 +1,40 @@
+
+.submenu-item.active {
+  background: rgba(44, 160, 120, 0.12);
+  color: var(--brand-green);
+  font-weight: 600;
+}
+
+.submenu-item.active svg {
+  color: var(--brand-green);
+}
+
+.nav-item-group.active .submenu,
+.nav-item.has-submenu.active + .submenu {
+  max-height: 500px !important;
+}
+
+.nav-item-group.active .submenu-icon,
+.nav-item.has-submenu.active .submenu-icon {
+  transform: rotate(180deg);
+}
+
+/* ===================================================
+   User Menu Dropdown — shared across all sidebar pages
+   =================================================== */
+.sidebar-footer .user-profile{position:relative}
+.user-menu-dropdown{position:absolute;bottom:calc(100% + 8px);left:8px;right:8px;background:var(--surface);border:1px solid var(--border-color);border-radius:14px;box-shadow:0 -8px 32px rgba(0,0,0,.18);overflow:hidden;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:9999}
+.user-menu-dropdown.umd-open{opacity:1;transform:translateY(0);pointer-events:auto}
+.umd-header{display:flex;align-items:center;gap:12px;padding:14px 16px;background:linear-gradient(135deg,rgba(44,160,120,.12),rgba(59,130,246,.08))}
+.umd-avatar{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#2ca078,#3b82f6);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.umd-info{display:flex;flex-direction:column;min-width:0}
+.umd-signed{font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:.04em}
+.umd-name{font-size:14px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.umd-role{font-size:12px;color:var(--text-secondary)}
+.umd-divider{height:1px;background:var(--border-color)}
+.umd-item{display:flex;align-items:center;gap:10px;padding:11px 16px;color:var(--text-primary);text-decoration:none;font-size:14px;font-weight:500;transition:background .12s}
+.umd-item:hover{background:var(--surface-hover)}
+.umd-item svg{width:16px;height:16px;flex-shrink:0;color:var(--text-secondary)}
+.umd-item-danger{color:#ef4444}
+.umd-item-danger svg{color:#ef4444}
+.umd-item-danger:hover{background:rgba(239,68,68,.08)}

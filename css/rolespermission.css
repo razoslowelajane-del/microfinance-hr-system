@@ -1,0 +1,406 @@
+/* ========================================================
+   rolespermission.css  –  premium overrides for content area
+   Base layout/sidebar/header inherited from useraccount.css
+   ======================================================== */
+
+/* ══ Stats Bar ══ */
+.rp-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.rp-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.rp-stat-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.rp-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rp-stat-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.rp-stat-icon.indigo {
+  background: rgba(99, 102, 241, .12);
+  color: #6366f1;
+}
+
+.rp-stat-icon.violet {
+  background: rgba(139, 92, 246, .12);
+  color: #8b5cf6;
+}
+
+.rp-stat-icon.green {
+  background: rgba(44, 160, 120, .12);
+  color: #2ca078;
+}
+
+.rp-stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.rp-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+  letter-spacing: -.5px;
+}
+
+.rp-stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-top: 2px;
+}
+
+/* ══ Panel ══ */
+.rp-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.rp-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.rp-panel-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rp-panel-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, .1);
+  color: #6366f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rp-panel-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.rp-panel-titles h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -.2px;
+}
+
+.rp-panel-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.rp-panel-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.rp-panel-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.rp-panel-search svg {
+  position: absolute;
+  left: 10px;
+  width: 15px;
+  height: 15px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.rp-panel-search input {
+  padding: 8px 12px 8px 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--background);
+  color: var(--text-primary);
+  outline: none;
+  width: 200px;
+  transition: var(--transition);
+}
+
+.rp-panel-search input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .1);
+}
+
+/* ══ Role Avatar Row ══ */
+.rp-role-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rp-role-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: .5px;
+}
+
+.rp-role-name {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.rp-role-id {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.rp-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 320px;
+}
+
+/* ══ Permission Button ══ */
+.btn-permission {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all .2s ease;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, .25);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-permission svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.btn-permission:hover {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, .4);
+}
+
+.btn-permission:active {
+  transform: translateY(0);
+}
+
+/* Archive badge */
+.badge-archived {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(107, 114, 128, .12);
+  color: #6b7280;
+  border: 1px solid rgba(107, 114, 128, .3);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* ══ Modal – gradient hero ══ */
+.rp-modal-hero {
+  position: relative;
+  padding: 22px 24px 18px;
+  background: linear-gradient(135deg, #3730a3 0%, #6366f1 55%, #8b5cf6 100%);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.rp-modal-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='30' fill='%23ffffff' fill-opacity='0.05'/%3E%3C/svg%3E");
+}
+
+.rp-modal-hero-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rp-modal-hero-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .2);
+  border: 1.5px solid rgba(255, 255, 255, .4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.rp-modal-hero-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.rp-modal-hero-text {
+  flex: 1;
+}
+
+.rp-modal-hero-text h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 3px;
+  letter-spacing: -.2px;
+}
+
+.rp-modal-hero-text p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, .8);
+  margin: 0;
+}
+
+.rp-close-modal {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .2);
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.rp-close-modal:hover {
+  background: rgba(255, 255, 255, .35);
+}
+
+/* Textarea in form */
+.form-row textarea {
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--background);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: var(--transition);
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-row textarea:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .1);
+  background: var(--surface);
+}
+
+/* Submit button overridden for indigo */
+.btn-rp-submit {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border: none;
+  padding: 9px 22px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, .3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-rp-submit:hover {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, .4);
+}
+
+.btn-rp-submit svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 768px) {
+  .rp-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .rp-stats {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,147 @@
+/* ===================================================
+   1. SHARED DESIGN TOKENS (Light & Dark Support)
+   =================================================== */
+:root {
+    --brand-green: #10b981;
+    --brand-red: #f43f5e;
+    --brand-blue: #3b82f6;
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --surface-hover: #f1f5f9;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --sidebar-width: 280px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.dark-mode {
+    --background: #0f172a;
+    --surface: #1e293b;
+    --surface-hover: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-color: #334155;
+    --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+/* ===================================================
+   2. CORE LAYOUT
+   =================================================== */
+body {
+    margin: 0; padding: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--background);
+    color: var(--text-main);
+    display: flex;
+    min-height: 100vh;
+}
+
+.main-content {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    transition: var(--transition);
+}
+
+/* Page Header */
+.page-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.25rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-left { display: flex; flex-direction: column; gap: 4px; }
+.header-left h1 { font-size: 1.25rem; font-weight: 700; margin: 0; }
+.header-left p { font-size: 0.85rem; color: var(--text-muted); margin: 0; }
+
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+.back-link {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--brand-green); text-decoration: none;
+    font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;
+}
+
+/* ===================================================
+   3. GRID TABLE & CARDS
+   =================================================== */
+.content-wrapper { padding: 2rem; }
+
+.content-card {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.table-container { overflow-x: auto; width: 100%; }
+
+.grid-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+
+.grid-table th {
+    background: var(--background);
+    padding: 1rem; border-bottom: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.day-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+.date-label { font-size: 0.85rem; font-weight: 600; }
+
+.grid-table td { padding: 1rem; border-bottom: 1px solid var(--border-color); text-align: center; }
+
+/* Personnel Sticky Column */
+.staff-col {
+    background: var(--surface) !important;
+    min-width: 260px; text-align: left !important;
+    position: sticky; left: 0; z-index: 10;
+    border-right: 2px solid var(--border-color) !important;
+    cursor: pointer;
+}
+.staff-col:hover { background: var(--surface-hover) !important; }
+
+.staff-name { font-weight: 700; font-size: 0.9rem; }
+.staff-meta { font-size: 11px; color: var(--text-muted); }
+
+/* Shift Tags */
+.tag {
+    padding: 0.4rem 0.6rem; border-radius: 6px;
+    font-weight: 800; font-size: 0.7rem; display: inline-block;
+}
+.tag-AM { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.tag-MD { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.tag-GY { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+.tag-OFF { background: rgba(100, 116, 139, 0.1); color: #64748b; }
+
+/* ===================================================
+   4. BUTTONS & DRAWER
+   =================================================== */
+.btn {
+    padding: 0.6rem 1.2rem; border-radius: 10px; font-weight: 600;
+    font-size: 0.85rem; cursor: pointer; border: none;
+    display: flex; align-items: center; gap: 8px; color: white;
+}
+.btn-return { background: var(--brand-red); }
+.btn-approve { background: var(--brand-green); }
+
+.drawer-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; justify-content: flex-end; z-index: 3000;
+    backdrop-filter: blur(4px);
+}
+
+.drawer-content {
+    width: 480px; background: var(--surface); height: 100%;
+    padding: 2.5rem; box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+    animation: slideIn 0.3s ease-out;
+}
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+.drawer-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }

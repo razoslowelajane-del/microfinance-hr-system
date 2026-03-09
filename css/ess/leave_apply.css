@@ -1,0 +1,198 @@
+/* css/ess/leave_apply.css */
+:root {
+    /* Pinatugma sa binigay mong palette */
+    --brand-green: #10b981;
+    --brand-red: #f43f5e;
+    --brand-blue: #3b82f6; /* Token placeholder but we will use green for primary actions */
+    --brand-yellow: #f59e0b;
+    
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --surface-hover: #f1f5f9;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    
+    --sidebar-width: 280px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.dark-mode {
+    --background: #0f172a;
+    --surface: #1e293b;
+    --surface-hover: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-color: #334155;
+    --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+* {
+    box-sizing: border-box;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+    margin: 0;
+    background-color: var(--background);
+    color: var(--text-main);
+    display: flex;
+    min-height: 100vh;
+    transition: background-color 0.3s ease;
+}
+
+.main-content {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding-bottom: 3rem;
+}
+
+.page-header {
+    background: var(--surface);
+    padding: 2rem 3rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.page-title-box h1 { font-size: 1.75rem; margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+.page-title-box p { margin: 5px 0 0 0; color: var(--text-muted); font-size: 0.95rem; }
+
+.content-wrapper { padding: 3rem; max-width: 1300px; margin: 0 auto; }
+
+/* Credits Card Design - Green Focus */
+.credits-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.credit-card {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    padding: 1.75rem;
+    border-radius: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.credit-card:hover { 
+    transform: translateY(-5px); 
+    border-color: var(--brand-green); 
+}
+
+.credit-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; }
+.credit-value { font-size: 2.25rem; margin: 8px 0 0 0; font-weight: 800; color: var(--brand-green); }
+.credit-value small { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
+.credit-icon { background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 16px; color: var(--brand-green); }
+
+/* Form Layout */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.form-card {
+    background: var(--surface);
+    border-radius: 30px;
+    border: 1px solid var(--border-color);
+    padding: 3rem;
+    box-shadow: var(--shadow);
+}
+
+.card-header { display: flex; align-items: center; gap: 15px; margin-bottom: 2.5rem; }
+.card-header h2 { font-size: 1.5rem; margin: 0; font-weight: 700; }
+.card-header svg { color: var(--brand-green); width: 28px; height: 28px; }
+
+.input-group { margin-bottom: 1.75rem; display: flex; flex-direction: column; gap: 10px; }
+.input-group label { font-size: 0.9rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+.input-group label svg { width: 16px; color: var(--text-muted); }
+
+.input-group select,
+.input-group input,
+.input-group textarea {
+    background: var(--background);
+    border: 1.5px solid var(--border-color);
+    color: var(--text-main);
+    padding: 1rem 1.25rem;
+    border-radius: 14px;
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.input-group select:focus,
+.input-group input:focus,
+.input-group textarea:focus {
+    outline: none;
+    border-color: var(--brand-green);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+
+.file-upload-box {
+    border: 2px dashed var(--border-color);
+    border-radius: 14px;
+    padding: 2rem;
+    text-align: center;
+    position: relative;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.file-upload-box:hover { background: var(--surface-hover); border-color: var(--brand-green); }
+.file-upload-box input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-upload-box p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+
+.summary-box {
+    background: rgba(16, 185, 129, 0.1);
+    padding: 1.25rem;
+    border-radius: 14px;
+    margin-bottom: 2rem;
+    display: none;
+}
+.summary-box.show { display: block; animation: slideDown 0.3s ease; }
+.summary-item { display: flex; justify-content: space-between; font-weight: 700; color: var(--brand-green); }
+
+.submit-btn {
+    width: 100%;
+    background: var(--brand-green);
+    color: white;
+    border: none;
+    padding: 1.25rem;
+    border-radius: 16px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    transition: 0.3s;
+}
+.submit-btn:hover { opacity: 0.9; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); }
+
+/* Reminders List - Yellow Icons */
+.instruction-card { background: var(--surface-hover); padding: 2rem; border-radius: 24px; border: 1px solid var(--border-color); }
+.instruction-card h3 { margin-top: 0; font-size: 1.1rem; font-weight: 700; }
+.reminders-list { list-style: none; padding: 0; margin: 0; }
+.reminders-list li { display: flex; gap: 12px; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.6; }
+.reminders-list li svg { flex-shrink: 0; width: 18px; color: var(--brand-yellow); }
+
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 1024px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .main-content { margin-left: 0; }
+}

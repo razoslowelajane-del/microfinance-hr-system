@@ -1,0 +1,215 @@
+/* ===================================================
+   1. DESIGN TOKENS (Light & Dark Support)
+   =================================================== */
+:root {
+    /* Brand Colors */
+    --brand-green: #10b981;
+    --brand-red: #f43f5e;
+    --brand-blue: #3b82f6;
+    --brand-yellow: #f59e0b;
+    
+    /* Light Mode (Default) */
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --surface-hover: #f1f5f9;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    
+    /* Sidebar Dimens */
+    --sidebar-width: 280px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.dark-mode {
+    --background: #0f172a;
+    --surface: #1e293b;
+    --surface-hover: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-color: #334155;
+    --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+/* ===================================================
+   2. CORE LAYOUT
+   =================================================== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--background);
+    color: var(--text-main);
+    display: flex;
+    min-height: 100vh;
+    transition: background-color 0.3s ease;
+}
+
+.main-content {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    padding: 0;
+    transition: var(--transition);
+}
+
+/* ===================================================
+   3. HEADER & NAVIGATION
+   =================================================== */
+.page-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.25rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+.header-title h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+.header-title p { color: var(--text-muted); font-size: 0.875rem; }
+
+.header-right { display: flex; align-items: center; gap: 1rem; }
+
+/* Icon Buttons */
+.icon-btn {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border-color);
+    color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative; transition: var(--transition);
+}
+.icon-btn:hover { background: var(--surface-hover); color: var(--brand-blue); }
+.icon-btn .badge {
+    position: absolute; top: -5px; right: -5px;
+    background: var(--brand-red); color: white;
+    font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 20px;
+}
+
+/* ===================================================
+   4. STATS CARDS
+   =================================================== */
+.content-wrapper { padding: 2rem; }
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    transition: var(--transition);
+}
+.stat-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); }
+
+.stat-icon {
+    width: 54px; height: 54px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+}
+
+.stat-label { display: block; font-size: 0.875rem; color: var(--text-muted); font-weight: 500; }
+.stat-value { font-size: 1.75rem; font-weight: 800; color: var(--text-main); }
+
+/* ===================================================
+   5. CONTENT CARDS & TABLES
+   =================================================== */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 1.5rem;
+}
+
+.content-card {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-title { font-size: 1.125rem; font-weight: 700; }
+
+.card-body { padding: 1.5rem; }
+
+/* Table Style */
+.data-table { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.table-row {
+    background: var(--background);
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: var(--transition);
+    border: 1px solid transparent;
+}
+.table-row:hover { border-color: var(--brand-blue); background: var(--surface-hover); }
+
+.client-info { display: flex; align-items: center; gap: 1rem; }
+.client-avatar {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; text-transform: uppercase;
+}
+
+.client-name { font-weight: 600; font-size: 0.95rem; }
+.client-detail { font-size: 0.8rem; color: var(--text-muted); }
+
+/* Status Badges */
+.badge-status {
+    padding: 0.4rem 0.75rem; border-radius: 8px;
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+}
+.badge-status.review { background: rgba(59, 130, 246, 0.1); color: var(--brand-blue); }
+
+/* Quick Actions */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.action-btn {
+    background: var(--background);
+    border: 1px solid var(--border-color);
+    padding: 1.25rem;
+    border-radius: 12px;
+    color: var(--text-main);
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+}
+.action-btn:hover { background: var(--brand-blue); color: white; border-color: var(--brand-blue); }
+.action-btn svg { width: 24px; height: 24px; }
+
+/* ===================================================
+   6. RESPONSIVENESS
+   =================================================== */
+@media (max-width: 1024px) {
+    .content-grid { grid-template-columns: 1fr; }
+    .main-content { margin-left: 0; }
+}
