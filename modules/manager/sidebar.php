@@ -13,7 +13,7 @@ function isActive($page, $current) {
 }
 
 // Helper para i-check kung dapat nakabukas ang Submenu
-$isWorkforceOpen = in_array($current_page, ['roster.php']);
+$isWorkforceOpen = in_array($current_page, ['roster_view.php']);
 $isRequestsOpen = in_array($current_page, ['leave.php', 'claims.php']);
 ?>
 
@@ -57,7 +57,7 @@ $isRequestsOpen = in_array($current_page, ['leave.php', 'claims.php']);
 
                 <div class="submenu <?php echo $isWorkforceOpen ? 'active' : ''; ?>" id="submenu-workforce">
 
-                    <a href="roster.php" class="submenu-item <?php echo isActive('roster.php', $current_page); ?>">
+                    <a href="roster_view.php" class="submenu-item <?php echo isActive('roster_view.php', $current_page); ?>">
                         <i data-lucide="calendar-check"></i>
                         <span>Review Rosters</span>
                     </a>

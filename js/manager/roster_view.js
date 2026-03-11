@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         rosterTableBody.innerHTML = rows.map(row => {
-            const reviewUrl = `${reviewBaseUrl}?roster_id=${encodeURIComponent(row.RosterID)}`;
+            const reviewUrl = `${reviewBaseUrl}?id=${encodeURIComponent(row.RosterID)}`;
             const statusClass = getStatusClass(row.Status);
 
             return `

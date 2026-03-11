@@ -168,7 +168,7 @@ include('sidebar.php');
                         </thead>
                         <tbody id="rosterTableBody">
                             <tr>
-                                <td colspan="7">Loading roster queue...</td>
+                                <td colspan="6">Loading roster queue...</td>
                             </tr>
                         </tbody>
                     </table>

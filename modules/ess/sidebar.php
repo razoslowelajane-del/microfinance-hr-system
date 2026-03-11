@@ -1,6 +1,6 @@
 <?php
 // modules/ess/sidebar.php
-require_once __DIR__ . "/includes/auth_employee.php"; 
+require_once __DIR__ . "/includes/auth_employee.php";
 
 $current_page = basename($_SERVER['PHP_SELF']);
 
@@ -9,68 +9,38 @@ $userRole = $_SESSION['user_role'] ?? 'Staff';
 $deptName = $_SESSION['department_name'] ?? 'General';
 
 function isActive($page, $current) {
-    return ($page == $current) ? 'active' : '';
+    return ($page === $current) ? 'active' : '';
 }
 
-// Initial State check
-$isLeaveOpen = in_array($current_page, ['leave_apply.php', 'leave_history.php']);
+$isAttendanceOpen = in_array($current_page, ['attendance.php', 'my_schedule.php']);
+$isLeaveOpen  = in_array($current_page, ['leave_apply.php', 'leave_history.php']);
 $isClaimsOpen = in_array($current_page, ['claims_apply.php', 'claims_history.php']);
 ?>
 
-<style>
-    /* Force Sidebar Scroll if many items */
-    .sidebar-nav {
-        overflow-y: auto !important;
-        max-height: calc(100vh - 150px);
-        padding-bottom: 50px;
-    }
-    
-    /* Removed box-shadow from main sidebar through external CSS override if needed */
-    .sidebar {
-        box-shadow: none !important;
-    }
-
-    /* Submenu - Removed Gray Background */
-    .submenu {
-        display: none; 
-        padding-left: 20px;
-        background: transparent !important; /* Inalis ang gray background */
-        list-style: none;
-    }
-    
-    /* Show if active */
-    .submenu.active {
-        display: block !important;
-    }
-    
-    /* Rotation ng arrow */
-    .has-submenu.active .submenu-icon {
-        transform: rotate(180deg);
-    }
-    
-    .nav-item-group {
-        width: 100%;
-    }
-    
-    /* Minimal border for separation instead of shadow */
-    .sidebar {
-        border-right: 1px solid var(--border-color);
-    }
-</style>
-
-<link rel="stylesheet" href="../../css/manager/sidebar.css?v=1.5">
+<link rel="stylesheet" href="../../css/officer/sidebar.css?v=1.0">
 <script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+.sidebar-nav{
+    overflow-y:auto;
+    max-height:calc(100vh - 150px);
+    padding-bottom:40px;
+}
+</style>
 
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="logo-container">
-            <div class="logo-wrapper"><img src="../../img/logo.png" alt="Logo" class="logo"></div>
+            <div class="logo-wrapper">
+                <img src="../../img/logo.png" alt="Logo" class="logo">
+            </div>
             <div class="logo-text">
                 <h2 class="app-name">Microfinance</h2>
                 <span class="app-tagline">ESS Portal</span>
             </div>
         </div>
-        <button class="sidebar-toggle" id="sidebarToggle">
+
+        <button class="sidebar-toggle" id="sidebarToggle" type="button">
             <i data-lucide="panel-left-close"></i>
         </button>
     </div>
@@ -80,61 +50,71 @@ $isClaimsOpen = in_array($current_page, ['claims_apply.php', 'claims_history.php
             <span class="nav-section-title">MAIN MENU</span>
 
             <a href="dashboard.php" class="nav-item <?php echo isActive('dashboard.php', $current_page); ?>">
-                <i data-lucide="chart-no-axes-combined"></i>
+                <i data-lucide="layout-dashboard"></i>
                 <span>Dashboard</span>
             </a>
 
-            <a href="attendance.php" class="nav-item <?php echo isActive('attendance.php', $current_page); ?>">
-                <i data-lucide="file-clock"></i>
-                <span>Time Attendance</span>
-            </a>
+            <div class="nav-item-group">
+                <button class="nav-item has-submenu <?php echo $isAttendanceOpen ? 'active' : ''; ?>" data-module="attendance" type="button">
+                    <div class="nav-item-content">
+                        <i data-lucide="scan-face"></i>
+                        <span>Time Attendance</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="submenu-icon"></i>
+                </button>
+                <div class="submenu <?php echo $isAttendanceOpen ? 'active' : ''; ?>" id="submenu-attendance">
+                    <a href="attendance.php" class="submenu-item <?php echo isActive('attendance.php', $current_page); ?>">
+                        <i data-lucide="camera"></i>
+                        <span>Attendance</span>
+                    </a>
+                    <a href="my_schedule.php" class="submenu-item <?php echo isActive('my_schedule.php', $current_page); ?>">
+                        <i data-lucide="calendar-days"></i>
+                        <span>My Schedule</span>
+                    </a>
+                </div>
+            </div>
 
             <a href="information_management.php" class="nav-item <?php echo isActive('information_management.php', $current_page); ?>">
                 <i data-lucide="user-pen"></i>
                 <span>Information Management</span>
             </a>
 
-            <a href="applybank.php" class="nav-item <?php echo isActive('applybank.php', $current_page); ?>">
-                <i data-lucide="landmark"></i>
-                <span>Apply Bank Account</span>
-            </a>
-
             <div class="nav-item-group">
-                <div class="nav-item has-submenu <?php echo $isLeaveOpen ? 'active' : ''; ?>" 
-                     onclick="toggleMySubmenu('leave', this)" 
-                     style="cursor: pointer;">
+                <button class="nav-item has-submenu <?php echo $isLeaveOpen ? 'active' : ''; ?>" data-module="leave" type="button">
                     <div class="nav-item-content">
-                        <i data-lucide="tickets-plane"></i>
+                        <i data-lucide="calendar-clock"></i>
                         <span>Leave Management</span>
                     </div>
                     <i data-lucide="chevron-down" class="submenu-icon"></i>
-                </div>
-                <div class="submenu <?php echo $isLeaveOpen ? 'active' : ''; ?>" id="ess-leave">
+                </button>
+                <div class="submenu <?php echo $isLeaveOpen ? 'active' : ''; ?>" id="submenu-leave">
                     <a href="leave_apply.php" class="submenu-item <?php echo isActive('leave_apply.php', $current_page); ?>">
-                        <i data-lucide="file-plus" style="width:14px;"></i> <span>Apply for Leave</span>
+                        <i data-lucide="file-plus"></i>
+                        <span>Apply for Leave</span>
                     </a>
                     <a href="leave_history.php" class="submenu-item <?php echo isActive('leave_history.php', $current_page); ?>">
-                        <i data-lucide="history" style="width:14px;"></i> <span>Leave History</span>
+                        <i data-lucide="history"></i>
+                        <span>Leave History</span>
                     </a>
                 </div>
             </div>
 
             <div class="nav-item-group">
-                <div class="nav-item has-submenu <?php echo $isClaimsOpen ? 'active' : ''; ?>" 
-                     onclick="toggleMySubmenu('claims', this)" 
-                     style="cursor: pointer;">
+                <button class="nav-item has-submenu <?php echo $isClaimsOpen ? 'active' : ''; ?>" data-module="claims" type="button">
                     <div class="nav-item-content">
-                        <i data-lucide="receipt-text"></i>
+                        <i data-lucide="receipt"></i>
                         <span>Claim Management</span>
                     </div>
                     <i data-lucide="chevron-down" class="submenu-icon"></i>
-                </div>
-                <div class="submenu <?php echo $isClaimsOpen ? 'active' : ''; ?>" id="ess-claims">
+                </button>
+                <div class="submenu <?php echo $isClaimsOpen ? 'active' : ''; ?>" id="submenu-claims">
                     <a href="claims_apply.php" class="submenu-item <?php echo isActive('claims_apply.php', $current_page); ?>">
-                        <i data-lucide="file-text" style="width:14px;"></i> <span>Request Claim</span>
+                        <i data-lucide="file-text"></i>
+                        <span>Request Claim</span>
                     </a>
                     <a href="claims_history.php" class="submenu-item <?php echo isActive('claims_history.php', $current_page); ?>">
-                        <i data-lucide="clipboard-list" style="width:14px;"></i> <span>Claim History</span>
+                        <i data-lucide="clipboard-list"></i>
+                        <span>Claim History</span>
                     </a>
                 </div>
             </div>
@@ -148,69 +128,60 @@ $isClaimsOpen = in_array($current_page, ['claims_apply.php', 'claims_history.php
         <div class="nav-section">
             <span class="nav-section-title">SETTINGS</span>
             <a href="security.php" class="nav-item <?php echo isActive('security.php', $current_page); ?>">
-                <i data-lucide="shield"></i> <span>Security</span>
+                <i data-lucide="shield"></i>
+                <span>Security</span>
             </a>
         </div>
     </nav>
 
     <div class="sidebar-footer">
         <div class="user-profile">
-            <div class="user-avatar"><img src="../../img/profile.png" alt="User"></div>
+            <div class="user-avatar">
+                <img src="../../img/profile.png" alt="User">
+            </div>
+
             <div class="user-info">
                 <span class="user-name"><?php echo htmlspecialchars($userName); ?></span>
                 <span class="user-role"><?php echo htmlspecialchars($userRole); ?></span>
             </div>
-            <button class="user-menu-btn" id="userMenuBtn"><i data-lucide="more-vertical"></i></button>
+
+            <button class="user-menu-btn" id="userMenuBtn" type="button">
+                <i data-lucide="more-vertical"></i>
+            </button>
+
             <div class="user-menu-dropdown" id="userMenuDropdown">
-                <a href="../../logout.php" class="umd-item umd-item-danger">
-                    <i data-lucide="log-out"></i> <span>Sign Out</span>
+                <div class="umd-header">
+                    <div class="umd-avatar" id="umdAvatar"></div>
+                    <div class="umd-info">
+                        <span class="umd-signed">Signed in as</span>
+                        <span class="umd-name" id="umdName"><?php echo htmlspecialchars($userName); ?></span>
+                        <span class="umd-role" id="umdRole"><?php echo htmlspecialchars($userRole); ?></span>
+                    </div>
+                </div>
+
+                <div class="umd-divider"></div>
+
+                <a href="information_management.php" class="umd-item">
+                    <i data-lucide="user-round"></i>
+                    <span>Profile</span>
+                </a>
+
+                <div class="umd-divider"></div>
+
+                <a href="../../logout.php" class="umd-item umd-item-danger umd-sign-out">
+                    <i data-lucide="log-out"></i>
+                    <span>Sign Out</span>
                 </a>
             </div>
         </div>
     </div>
 </aside>
 
-<script src="../../js/manager/sidebar.js"></script>
+<script src="../../js/manager/sidebar.js?v=<?php echo time(); ?>"></script>
+<script src="../../js/user-menu.js?v=<?php echo time(); ?>"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    lucide.createIcons();
-
-    // Independent Toggle Function
-    function toggleMySubmenu(module, element) {
-        const targetId = 'ess-' + module;
-        const target = document.getElementById(targetId);
-        
-        // Close all other submenus
-        document.querySelectorAll('.submenu').forEach(sub => {
-            if (sub.id !== targetId) {
-                sub.classList.remove('active');
-                sub.style.display = 'none';
-                sub.previousElementSibling.classList.remove('active');
-            }
-        });
-
-        // Toggle current
-        const isActive = target.classList.contains('active');
-        if (isActive) {
-            target.classList.remove('active');
-            target.style.display = 'none';
-            element.classList.remove('active');
-        } else {
-            target.classList.add('active');
-            target.style.display = 'block';
-            element.classList.add('active');
-        }
-    }
-
-    // User Menu
-    const userBtn = document.getElementById('userMenuBtn');
-    if(userBtn) {
-        userBtn.onclick = (e) => {
-            e.stopPropagation();
-            document.getElementById('userMenuDropdown').classList.toggle('active');
-        }
-    }
-    window.onclick = () => {
-        const dropdown = document.getElementById('userMenuDropdown');
-        if (dropdown) dropdown.classList.remove('active');
-    };
+document.addEventListener('DOMContentLoaded', function () {
+    if (window.lucide) lucide.createIcons();
+});
 </script>

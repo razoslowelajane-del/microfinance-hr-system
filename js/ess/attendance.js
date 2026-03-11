@@ -1,21 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
     if (window.lucide) lucide.createIcons();
 
-    const body = document.body;
-    const themeToggle = document.getElementById("themeToggle");
-
-    if (localStorage.getItem("theme") === "dark") {
-        body.classList.add("dark-mode");
-    }
-
-    if (themeToggle) {
-        themeToggle.addEventListener("click", () => {
-            body.classList.toggle("dark-mode");
-            localStorage.setItem("theme", body.classList.contains("dark-mode") ? "dark" : "light");
-            if (window.lucide) lucide.createIcons();
-        });
-    }
-
     const checkLocationBtn = document.getElementById("checkLocationBtn");
     const startCameraBtn = document.getElementById("startCameraBtn");
     const captureFaceBtn = document.getElementById("captureFaceBtn");
@@ -28,6 +13,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const geoAccuracyText = document.getElementById("geoAccuracyText");
     const geoLocationText = document.getElementById("geoLocationText");
     const geoDistanceText = document.getElementById("geoDistanceText");
+
+    const registeredLocationName = document.getElementById("registeredLocationName");
+    const registeredLocationMeta = document.getElementById("registeredLocationMeta");
 
     const faceHeadline = document.getElementById("faceHeadline");
     const faceMessage = document.getElementById("faceMessage");
@@ -56,6 +44,60 @@ document.addEventListener("DOMContentLoaded", async () => {
         submitAttendanceBtn.disabled = !ready;
     }
 
+    function setRegisteredLocationFallback(title, meta) {
+        if (registeredLocationName) {
+            registeredLocationName.textContent = title;
+        }
+        if (registeredLocationMeta) {
+            registeredLocationMeta.textContent = meta;
+        }
+    }
+
+    function setRegisteredLocationFromResult(location) {
+        if (!location) {
+            setRegisteredLocationFallback(
+                "No registered location",
+                "No assigned work location was returned by the server."
+            );
+            return;
+        }
+
+        const locationName =
+            location.LocationName ||
+            location.location_name ||
+            location.name ||
+            "Unnamed work location";
+
+        const address =
+            location.Address ||
+            location.LocationAddress ||
+            location.address ||
+            "";
+
+        const radius =
+            location.AllowedRadiusMeters ??
+            location.RadiusMeters ??
+            location.radius_meters ??
+            location.radius ??
+            null;
+
+        if (registeredLocationName) {
+            registeredLocationName.textContent = locationName;
+        }
+
+        if (registeredLocationMeta) {
+            if (address && radius !== null && radius !== "") {
+                registeredLocationMeta.textContent = `${address} • Radius: ${radius} meters`;
+            } else if (address) {
+                registeredLocationMeta.textContent = address;
+            } else if (radius !== null && radius !== "") {
+                registeredLocationMeta.textContent = `Allowed radius: ${radius} meters`;
+            } else {
+                registeredLocationMeta.textContent = "Location details loaded from database.";
+            }
+        }
+    }
+
     async function loadModels() {
         try {
             await faceapi.nets.tinyFaceDetector.loadFromUri("../../models");
@@ -79,6 +121,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             geoHeadline.textContent = "Geolocation not supported";
             geoMessage.textContent = "Your browser does not support geolocation.";
             readyGeo.textContent = "Unsupported";
+            setRegisteredLocationFallback(
+                "Unsupported",
+                "Your browser does not support geolocation."
+            );
             updateOverall();
             return;
         }
@@ -119,6 +165,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                         geoDistanceText.textContent = "--";
                         startCameraBtn.disabled = true;
                         captureFaceBtn.disabled = true;
+
+                        setRegisteredLocationFallback(
+                            "Unavailable",
+                            "Unable to load work location from database."
+                        );
+
                         updateOverall();
                         return;
                     }
@@ -127,15 +179,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                     geoLocationText.textContent = result.location?.LocationName || "--";
                     geoDistanceText.textContent =
-                        typeof result.distance_meters !== "undefined" && result.distance_meters !== null
+                        typeof result.distance_meters !== "undefined" &&
+                        result.distance_meters !== null
                             ? `${Number(result.distance_meters).toFixed(2)} m`
                             : "--";
+
+                    setRegisteredLocationFromResult(result.location);
 
                     if (result.geo_status === "IN_GEOFENCE") {
                         geoPassed = true;
                         geoBadge.textContent = "Passed";
                         geoHeadline.textContent = "Location verified";
-                        geoMessage.textContent = result.message || "You are inside the allowed work location.";
+                        geoMessage.textContent =
+                            result.message || "You are inside the allowed work location.";
                         readyGeo.textContent = "Passed";
 
                         if (modelsLoaded) {
@@ -143,23 +199,27 @@ document.addEventListener("DOMContentLoaded", async () => {
                             cameraStatus.textContent = "Ready";
                             faceHeadline.textContent = "You may now open the camera";
                             faceMessage.textContent = "Start the camera and capture your face.";
-                            attendanceNote.textContent = "Geolocation passed. Proceed to camera verification.";
+                            attendanceNote.textContent =
+                                "Geolocation passed. Proceed to camera verification.";
                         } else {
                             startCameraBtn.disabled = true;
                             faceHeadline.textContent = "Models not loaded";
-                            faceMessage.textContent = "Geolocation passed but face models failed to load.";
+                            faceMessage.textContent =
+                                "Geolocation passed but face models failed to load.";
                             attendanceNote.textContent = "Fix face-api models first.";
                         }
                     } else {
                         geoPassed = false;
                         geoBadge.textContent = "Outside";
                         geoHeadline.textContent = "Outside geofence";
-                        geoMessage.textContent = result.message || "You are outside the allowed work location.";
+                        geoMessage.textContent =
+                            result.message || "You are outside the allowed work location.";
                         readyGeo.textContent = "Failed";
                         startCameraBtn.disabled = true;
                         captureFaceBtn.disabled = true;
                         cameraStatus.textContent = "Locked";
-                        attendanceNote.textContent = "You must be inside the geofence before camera unlocks.";
+                        attendanceNote.textContent =
+                            "You must be inside the geofence before camera unlocks.";
                     }
 
                     updateOverall();
@@ -173,6 +233,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                     startCameraBtn.disabled = true;
                     captureFaceBtn.disabled = true;
                     attendanceNote.textContent = "Server error during geolocation validation.";
+
+                    setRegisteredLocationFallback(
+                        "Unavailable",
+                        "Server error while loading work location."
+                    );
+
                     updateOverall();
                 }
             },
@@ -186,6 +252,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 startCameraBtn.disabled = true;
                 captureFaceBtn.disabled = true;
                 attendanceNote.textContent = "Allow location permission first.";
+
+                setRegisteredLocationFallback(
+                    "Permission needed",
+                    "Allow location access to load your assigned work location."
+                );
+
                 updateOverall();
             },
             {
@@ -219,7 +291,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             cameraStatus.textContent = "On";
             captureFaceBtn.disabled = false;
             faceHeadline.textContent = "Camera active";
-            faceMessage.textContent = "Center your face inside the frame, then click Capture Face.";
+            faceMessage.textContent =
+                "Center your face inside the frame, then click Capture Face.";
             attendanceNote.textContent = "Camera is active. Capture your face clearly.";
         } catch (error) {
             console.error(error);
@@ -270,7 +343,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             captureStatus.textContent = "Done";
             readyFace.textContent = "Passed";
             faceHeadline.textContent = "Face captured successfully";
-            faceMessage.textContent = "Facial verification passed. You may now submit attendance.";
+            faceMessage.textContent =
+                "Facial verification passed. You may now submit attendance.";
             attendanceNote.textContent = "Face captured successfully. Ready to submit.";
             updateOverall();
         } catch (error) {
@@ -312,7 +386,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             if (result.ok) {
                 readyOverall.textContent = "Submitted";
-                attendanceNote.textContent = result.message || "Attendance submitted successfully.";
+                attendanceNote.textContent =
+                    result.message || "Attendance submitted successfully.";
 
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
@@ -323,7 +398,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 captureFaceBtn.disabled = true;
                 submitAttendanceBtn.disabled = true;
             } else {
-                attendanceNote.textContent = result.message || "Attendance submission failed.";
+                attendanceNote.textContent =
+                    result.message || "Attendance submission failed.";
                 submitAttendanceBtn.disabled = false;
             }
         } catch (error) {
