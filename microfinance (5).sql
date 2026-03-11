@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 09, 2026 at 12:19 PM
+-- Generation Time: Mar 11, 2026 at 02:43 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -191,7 +191,7 @@ CREATE TABLE `department_officers` (
 --
 
 INSERT INTO `department_officers` (`DeptOfficerID`, `DepartmentID`, `AccountID`, `IsPrimary`, `IsActive`, `CreatedAt`, `UpdatedAt`) VALUES
-(1, 3, 7, 1, 1, '2026-02-25 10:19:30', '2026-02-25 10:19:30'),
+(1, 3, 7, 0, 0, '2026-02-25 10:19:30', '2026-03-09 17:48:34'),
 (2, 4, 8, 1, 1, '2026-02-25 10:19:30', '2026-02-25 10:19:30'),
 (3, 3, 9, 1, 1, '2026-02-25 10:19:30', '2026-02-25 10:19:30');
 
@@ -262,7 +262,8 @@ INSERT INTO `employee` (`EmployeeID`, `EmployeeCode`, `FirstName`, `MiddleName`,
 (33, 'FIN202633', 'Kevin', 'E', 'Tan', '1994-03-15', 'Male', 'kevin.tan@gmail.com', '09170000033', 'Taguig City'),
 (34, 'FIN202634', 'Mika', 'F', 'Garcia', '1999-09-09', 'Female', 'mika.garcia@gmail.com', '09170000034', 'Pasig City'),
 (35, 'FIN202635', 'Anna', 'G', 'Lopez', '1995-11-03', 'Female', 'anna.lopez@gmail.com', '09170000035', 'Makati City'),
-(36, 'HRM2026036', 'rendon', 'L', 'labrador', '1993-07-18', 'Female', 'hr.manager36@company.com', '09170009999', 'Quezon City');
+(36, 'HRM2026036', 'rendon', 'L', 'labrador', '1993-07-18', 'Female', 'hr.manager36@company.com', '09170009999', 'Quezon City'),
+(38, 'LOGTEST001', 'Test', 'Auto', 'Employee', '2000-01-01', 'Male', 'test.employee@company.com', '09170000000', 'Quezon City');
 
 -- --------------------------------------------------------
 
@@ -400,7 +401,133 @@ INSERT INTO `employmentinformation` (`EmploymentID`, `EmployeeID`, `DepartmentID
 (28, 33, 4, 8, '2026-03-01', 'kevin.tan@company.com', 'Regular', NULL, NULL),
 (29, 34, 4, 8, '2026-03-01', 'mika.garcia@company.com', 'Regular', NULL, NULL),
 (30, 35, 4, 8, '2026-03-01', 'anna.lopez@company.com', 'Regular', NULL, NULL),
-(31, 36, 2, 9, '2026-03-04', 'hr.manager36@company.com', 'Regular', NULL, NULL);
+(31, 36, 2, 9, '2026-03-04', 'hr.manager36@company.com', 'Regular', NULL, NULL),
+(33, 38, 3, 7, '2026-03-10', 'test.employee@company.com', 'Regular', NULL, NULL);
+
+--
+-- Triggers `employmentinformation`
+--
+DELIMITER $$
+CREATE TRIGGER `trg_auto_assign_supervisor_after_employment_insert` AFTER INSERT ON `employmentinformation` FOR EACH ROW BEGIN
+    DECLARE vSupervisorAccountID INT DEFAULT NULL;
+    DECLARE vEmployeeAccountID INT DEFAULT NULL;
+    DECLARE vIsOfficer INT DEFAULT 0;
+
+    /* Kunin ang account ng employee */
+    SELECT ua.AccountID
+      INTO vEmployeeAccountID
+      FROM useraccounts ua
+     WHERE ua.EmployeeID = NEW.EmployeeID
+     LIMIT 1;
+
+    /* Check kung officer ang employee */
+    IF vEmployeeAccountID IS NOT NULL THEN
+        SELECT COUNT(*)
+          INTO vIsOfficer
+          FROM useraccountroles uar
+          INNER JOIN roles r ON r.RoleID = uar.RoleID
+         WHERE uar.AccountID = vEmployeeAccountID
+           AND r.RoleName = 'Department Officer';
+    END IF;
+
+    /* Hanapin ang active supervisor/officer ng same department */
+    SELECT dof.AccountID
+      INTO vSupervisorAccountID
+      FROM department_officers dof
+     WHERE dof.DepartmentID = NEW.DepartmentID
+       AND dof.IsActive = 1
+     ORDER BY dof.IsPrimary DESC, dof.UpdatedAt DESC, dof.DeptOfficerID DESC
+     LIMIT 1;
+
+    /* Insert lang kung:
+       - may active supervisor
+       - hindi officer ang employee
+       - hindi sariling account ng supervisor
+       - wala pang same active mapping
+    */
+    IF vSupervisorAccountID IS NOT NULL
+       AND vIsOfficer = 0
+       AND (vEmployeeAccountID IS NULL OR vSupervisorAccountID <> vEmployeeAccountID)
+       AND NOT EXISTS (
+            SELECT 1
+              FROM supervisor_employees se
+             WHERE se.EmployeeID = NEW.EmployeeID
+               AND se.DepartmentID = NEW.DepartmentID
+               AND se.IsActive = 1
+       )
+    THEN
+        INSERT INTO supervisor_employees
+            (SupervisorAccountID, EmployeeID, DepartmentID, IsActive, CreatedAt)
+        VALUES
+            (vSupervisorAccountID, NEW.EmployeeID, NEW.DepartmentID, 1, NOW());
+    END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `trg_auto_reassign_supervisor_after_employment_update` AFTER UPDATE ON `employmentinformation` FOR EACH ROW BEGIN
+    DECLARE vSupervisorAccountID INT DEFAULT NULL;
+    DECLARE vEmployeeAccountID INT DEFAULT NULL;
+    DECLARE vIsOfficer INT DEFAULT 0;
+
+    /* Gawin lang kapag nagbago ang department */
+    IF NOT (OLD.DepartmentID <=> NEW.DepartmentID) THEN
+
+        /* Deactivate lumang mapping */
+        UPDATE supervisor_employees
+           SET IsActive = 0
+         WHERE EmployeeID = NEW.EmployeeID
+           AND DepartmentID = OLD.DepartmentID
+           AND IsActive = 1;
+
+        /* Kunin ang account ng employee */
+        SELECT ua.AccountID
+          INTO vEmployeeAccountID
+          FROM useraccounts ua
+         WHERE ua.EmployeeID = NEW.EmployeeID
+         LIMIT 1;
+
+        /* Check kung officer ang employee */
+        IF vEmployeeAccountID IS NOT NULL THEN
+            SELECT COUNT(*)
+              INTO vIsOfficer
+              FROM useraccountroles uar
+              INNER JOIN roles r ON r.RoleID = uar.RoleID
+             WHERE uar.AccountID = vEmployeeAccountID
+               AND r.RoleName = 'Department Officer';
+        END IF;
+
+        /* Hanapin active supervisor ng bagong department */
+        SELECT dof.AccountID
+          INTO vSupervisorAccountID
+          FROM department_officers dof
+         WHERE dof.DepartmentID = NEW.DepartmentID
+           AND dof.IsActive = 1
+         ORDER BY dof.IsPrimary DESC, dof.UpdatedAt DESC, dof.DeptOfficerID DESC
+         LIMIT 1;
+
+        /* Insert new active mapping kung valid */
+        IF vSupervisorAccountID IS NOT NULL
+           AND vIsOfficer = 0
+           AND (vEmployeeAccountID IS NULL OR vSupervisorAccountID <> vEmployeeAccountID)
+           AND NOT EXISTS (
+                SELECT 1
+                  FROM supervisor_employees se
+                 WHERE se.EmployeeID = NEW.EmployeeID
+                   AND se.DepartmentID = NEW.DepartmentID
+                   AND se.IsActive = 1
+           )
+        THEN
+            INSERT INTO supervisor_employees
+                (SupervisorAccountID, EmployeeID, DepartmentID, IsActive, CreatedAt)
+            VALUES
+                (vSupervisorAccountID, NEW.EmployeeID, NEW.DepartmentID, 1, NOW());
+        END IF;
+
+    END IF;
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -481,7 +608,7 @@ CREATE TABLE `leave_requests` (
 --
 
 INSERT INTO `leave_requests` (`LeaveRequestID`, `EmployeeID`, `LeaveTypeID`, `StartDate`, `EndDate`, `TotalDays`, `Reason`, `Status`, `OfficerApprovedBy`, `HRApprovedBy`, `OfficerNotes`, `HRNotes`, `AttachmentPath`, `CreatedAt`, `UpdatedAt`) VALUES
-(3, 31, 2, '2026-03-07', '2026-03-17', 11.00, 'nilalagnat po covid ', 'APPROVED_BY_OFFICER', 9, NULL, '', NULL, NULL, '2026-03-04 19:27:45', '2026-03-09 09:42:38');
+(3, 31, 2, '2026-03-07', '2026-03-17', 11.00, 'nilalagnat po covid ', 'REJECTED', 9, 26, '', '', NULL, '2026-03-04 19:27:45', '2026-03-09 14:29:53');
 
 -- --------------------------------------------------------
 
@@ -564,7 +691,7 @@ CREATE TABLE `reimbursement_claims` (
 --
 
 INSERT INTO `reimbursement_claims` (`ClaimID`, `EmployeeID`, `PeriodID`, `ClaimDate`, `Category`, `Amount`, `Description`, `ReceiptImage`, `Status`, `OfficerApprovedBy`, `HRApprovedBy`, `OfficerNotes`, `HRNotes`, `CreatedAt`) VALUES
-(7, 31, 1, '2026-02-17', 'GAS', 500.00, 'nawlan ng gas', 'uploads/claims/claim_1772656783_31.png', 'APPROVED_BY_OFFICER', 9, NULL, '', NULL, '2026-03-04 20:39:43');
+(7, 31, 1, '2026-02-17', 'GAS', 500.00, 'nawlan ng gas', 'uploads/claims/claim_1772656783_31.png', 'APPROVED_BY_HR', 9, 26, '', '', '2026-03-04 20:39:43');
 
 -- --------------------------------------------------------
 
@@ -757,7 +884,8 @@ INSERT INTO `supervisor_employees` (`MapID`, `SupervisorAccountID`, `EmployeeID`
 (9, 9, 32, 3, 1, '2026-03-01 15:04:20'),
 (10, 8, 33, 4, 1, '2026-03-01 15:04:20'),
 (11, 8, 34, 4, 1, '2026-03-01 15:04:20'),
-(12, 8, 35, 4, 1, '2026-03-01 15:04:20');
+(12, 8, 35, 4, 1, '2026-03-01 15:04:20'),
+(13, 9, 38, 3, 1, '2026-03-10 13:07:42');
 
 -- --------------------------------------------------------
 
@@ -1289,6 +1417,7 @@ ALTER TABLE `shift_type`
 ALTER TABLE `supervisor_employees`
   ADD PRIMARY KEY (`MapID`),
   ADD UNIQUE KEY `uq_supervisor_emp_dept` (`SupervisorAccountID`,`EmployeeID`,`DepartmentID`),
+  ADD UNIQUE KEY `uq_supervisor_employee_department` (`SupervisorAccountID`,`EmployeeID`,`DepartmentID`),
   ADD KEY `idx_supervisor_active` (`SupervisorAccountID`,`IsActive`),
   ADD KEY `fk_se_employee` (`EmployeeID`),
   ADD KEY `fk_se_dept` (`DepartmentID`);
@@ -1453,7 +1582,7 @@ ALTER TABLE `emergency_contacts`
 -- AUTO_INCREMENT for table `employee`
 --
 ALTER TABLE `employee`
-  MODIFY `EmployeeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `EmployeeID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `employee_face_profile`
@@ -1477,7 +1606,7 @@ ALTER TABLE `employee_update_requests`
 -- AUTO_INCREMENT for table `employmentinformation`
 --
 ALTER TABLE `employmentinformation`
-  MODIFY `EmploymentID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `EmploymentID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `holidays`
@@ -1537,7 +1666,7 @@ ALTER TABLE `salary_grades`
 -- AUTO_INCREMENT for table `supervisor_employees`
 --
 ALTER TABLE `supervisor_employees`
-  MODIFY `MapID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `MapID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `taxbenefits`
