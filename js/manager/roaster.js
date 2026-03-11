@@ -136,7 +136,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderStats(data) {
     const stats = data.stats || {};
-    els.statEmployees.textContent = stats.total_employees ?? "--";
     els.statCoverage.textContent = stats.coverage_label ?? "--";
     els.statUnassigned.textContent = stats.unassigned ?? "--";
     els.statRosterStatus.textContent = data.roster?.Status || "Draft";

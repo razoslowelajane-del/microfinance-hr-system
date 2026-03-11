@@ -155,7 +155,7 @@ $minNoticeDate = date('Y-m-d', strtotime('+3 days'));
                                 <div class="input-group">
                                     <label><i data-lucide="paperclip"></i> Support Files <small>(PDF/JPG/PNG)</small></label>
                                     <div class="file-upload-box">
-                                        <input type="file" name="attachment" id="attachment" accept=".pdf,.jpg,.png">
+                                        <input type="file" name="attachment" id="attachment" accept=".pdf,.jpg,.png" required>
                                         <p>Select attachment or drag here</p>
                                     </div>
                                 </div>
