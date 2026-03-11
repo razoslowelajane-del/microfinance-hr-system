@@ -1,21 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
     if (window.lucide) lucide.createIcons();
 
-    const body = document.body;
-    const themeToggle = document.getElementById("themeToggle");
-
-    if (localStorage.getItem("theme") === "dark") {
-        body.classList.add("dark-mode");
-    }
-
-    if (themeToggle) {
-        themeToggle.addEventListener("click", () => {
-            body.classList.toggle("dark-mode");
-            localStorage.setItem("theme", body.classList.contains("dark-mode") ? "dark" : "light");
-            if (window.lucide) lucide.createIcons();
-        });
-    }
-
     const checkLocationBtn = document.getElementById("checkLocationBtn");
     const startCameraBtn = document.getElementById("startCameraBtn");
     const captureFaceBtn = document.getElementById("captureFaceBtn");
@@ -28,6 +13,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const geoAccuracyText = document.getElementById("geoAccuracyText");
     const geoLocationText = document.getElementById("geoLocationText");
     const geoDistanceText = document.getElementById("geoDistanceText");
+
+    const registeredLocationName = document.getElementById("registeredLocationName");
+    const registeredLocationMeta = document.getElementById("registeredLocationMeta");
 
     const faceHeadline = document.getElementById("faceHeadline");
     const faceMessage = document.getElementById("faceMessage");
@@ -170,7 +158,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const formData = new FormData();
         formData.append("embedding", JSON.stringify(averagedDescriptor));
 
-        const response = await fetch("includes/save_face_profile.php", {
+        const response = await fetch("includes/face_enrollment_save.php", {
             method: "POST",
             body: formData
         });
@@ -278,6 +266,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                         readyGeo.textContent = "Error";
                         geoLocationText.textContent = "--";
                         geoDistanceText.textContent = "--";
+                        registeredLocationName.textContent = "Not available";
+                        registeredLocationMeta.textContent = result.message || "Unable to load assigned work location.";
                         startCameraBtn.disabled = true;
                         captureFaceBtn.disabled = true;
                         updateOverall();
@@ -291,6 +281,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                         typeof result.distance_meters !== "undefined" && result.distance_meters !== null
                             ? `${Number(result.distance_meters).toFixed(2)} m`
                             : "--";
+
+                    registeredLocationName.textContent = result.location?.LocationName || "No assigned location";
+                    registeredLocationMeta.textContent =
+                        result.message || "Assigned work location loaded successfully.";
 
                     if (result.geo_status === "IN_GEOFENCE") {
                         geoPassed = true;
@@ -470,7 +464,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             formData.append("face_status", "MATCH");
             formData.append("liveness_status", "NOT_CHECKED");
 
-            const response = await fetch("submit_attendance.php", {
+            const response = await fetch("includes/submit_attendance.php", {
                 method: "POST",
                 body: formData
             });

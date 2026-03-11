@@ -22,12 +22,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const profileModeText = document.getElementById("profileModeText");
 
     const startCameraBtn = document.getElementById("startCameraBtn");
-    const captureEnrollBtn = document.getElementById("captureEnrollBtn");
+
+    const capturedPreview = document.getElementById("capturedPreview");
+    const noPreviewText = document.getElementById("noPreviewText");
 
     let stream = null;
     let modelsLoaded = false;
     let cameraReady = false;
     let isSaving = false;
+    let autoLoopRunning = false;
+    let faceAlreadyCaptured = false;
 
     function refreshIcons() {
         if (window.lucide) lucide.createIcons();
@@ -71,20 +75,33 @@ document.addEventListener("DOMContentLoaded", () => {
         refreshIcons();
     }
 
-    function setCaptureButtonEnabled(enabled) {
-        captureEnrollBtn.disabled = !enabled;
-
-        if (enabled) {
-            captureEnrollBtn.classList.remove("btn-muted");
-            captureEnrollBtn.classList.add("btn-primary");
-        } else {
-            captureEnrollBtn.classList.remove("btn-primary");
-            captureEnrollBtn.classList.add("btn-muted");
+    function resetPreview() {
+        if (capturedPreview) {
+            capturedPreview.src = "";
+            capturedPreview.style.display = "none";
+        }
+        if (noPreviewText) {
+            noPreviewText.style.display = "inline";
         }
     }
 
-    function resetFaceStatus() {
-        faceDetectedStatus.textContent = "Pending";
+    function showPreviewFromCanvas() {
+        captureCanvas.width = video.videoWidth;
+        captureCanvas.height = video.videoHeight;
+
+        const ctx = captureCanvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+
+        const imageData = captureCanvas.toDataURL("image/png");
+
+        if (capturedPreview) {
+            capturedPreview.src = imageData;
+            capturedPreview.style.display = "block";
+        }
+
+        if (noPreviewText) {
+            noPreviewText.style.display = "none";
+        }
     }
 
     function stopCamera() {
@@ -99,9 +116,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         cameraReady = false;
+        autoLoopRunning = false;
+        faceAlreadyCaptured = false;
         cameraStatus.textContent = "Off";
-        resetFaceStatus();
-        setCaptureButtonEnabled(false);
+        faceDetectedStatus.textContent = "Pending";
         setStartCameraButtonClosed();
     }
 
@@ -123,26 +141,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 profileAlgorithmText.textContent = data.profile.Algorithm || "--";
                 profileEnrolledAtText.textContent = formatDateTime(data.profile.EnrolledAt);
                 profileModeText.textContent = "Re-enrollment";
-
-                setBadge("success", "Profile Found");
-                enrollmentHeadline.textContent = "Existing face profile detected";
-                enrollmentMessage.textContent = "You can re-enroll to replace your current saved face profile.";
             } else {
                 profileStatusText.textContent = "Not Enrolled";
                 profileAlgorithmText.textContent = "--";
                 profileEnrolledAtText.textContent = "--";
                 profileModeText.textContent = "New Enrollment";
-
-                setBadge("warning", "No Profile");
-                enrollmentHeadline.textContent = "No face profile yet";
-                enrollmentMessage.textContent = "Start camera and save your first face enrollment.";
             }
         } catch (err) {
             console.error(err);
             profileStatusText.textContent = "Error";
-            setBadge("danger", "Error");
-            enrollmentHeadline.textContent = "Could not load enrollment status";
-            enrollmentMessage.textContent = err.message || "Please refresh the page.";
+            profileAlgorithmText.textContent = "--";
+            profileEnrolledAtText.textContent = "--";
+            profileModeText.textContent = "--";
         }
     }
 
@@ -182,6 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             stopCamera();
+            resetPreview();
 
             stream = await navigator.mediaDevices.getUserMedia({
                 video: {
@@ -201,21 +212,23 @@ document.addEventListener("DOMContentLoaded", () => {
             await video.play();
 
             cameraReady = true;
+            faceAlreadyCaptured = false;
             cameraStatus.textContent = "On";
-            setCaptureButtonEnabled(true);
+            faceDetectedStatus.textContent = "Scanning";
             setStartCameraButtonOpened();
 
             setBadge("success", "Camera Ready");
             cameraHeadline.textContent = "Camera is ready";
-            cameraMessage.textContent = "Make sure only one face is visible and centered in the frame.";
-            enrollmentHeadline.textContent = "Camera opened successfully";
-            enrollmentMessage.textContent = "You can now click Save Face Enrollment.";
-            enrollmentNote.textContent = "When your face is stable and clear, click Save Face Enrollment.";
+            cameraMessage.textContent = "Look straight at the camera. Face will be captured automatically.";
+            enrollmentHeadline.textContent = "Auto face enrollment is active";
+            enrollmentMessage.textContent = "Please hold still. We will automatically save once one clear face is detected.";
+            enrollmentNote.textContent = "No need to click save. Just stay centered and wait for auto-capture.";
+
+            autoDetectLoop();
         } catch (err) {
             console.error("Camera error:", err);
             cameraReady = false;
             cameraStatus.textContent = "Error";
-            setCaptureButtonEnabled(false);
             setStartCameraButtonClosed();
 
             setBadge("danger", "Camera Error");
@@ -226,91 +239,111 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function detectFace() {
         return await faceapi
-            .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
-                inputSize: 416,
-                scoreThreshold: 0.5
-            }))
+            .detectAllFaces(
+                video,
+                new faceapi.TinyFaceDetectorOptions({
+                    inputSize: 416,
+                    scoreThreshold: 0.5
+                })
+            )
             .withFaceLandmarks()
             .withFaceDescriptors();
     }
 
-    async function saveEnrollment() {
+    async function saveEnrollmentAuto(descriptor) {
+        const descriptorArray = Array.from(descriptor);
+
+        const res = await fetch("includes/face_enrollment_save.php", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                descriptor: descriptorArray,
+                algorithm: "face-api.js-128d"
+            })
+        });
+
+        const data = await res.json();
+
+        if (!data.ok) {
+            throw new Error(data.message || "Failed to save face enrollment.");
+        }
+
+        return data;
+    }
+
+    async function autoDetectLoop() {
+        if (autoLoopRunning) return;
+        autoLoopRunning = true;
+
         try {
-            if (isSaving) return;
+            while (cameraReady && !faceAlreadyCaptured) {
+                const detections = await detectFace();
 
-            if (!modelsLoaded) {
-                throw new Error("Face models are not ready.");
+                if (!cameraReady || faceAlreadyCaptured) break;
+
+                if (!Array.isArray(detections) || detections.length === 0) {
+                    faceDetectedStatus.textContent = "No Face";
+                    enrollmentHeadline.textContent = "No face detected yet";
+                    enrollmentMessage.textContent = "Please face the camera clearly.";
+                    await new Promise(resolve => setTimeout(resolve, 700));
+                    continue;
+                }
+
+                if (detections.length > 1) {
+                    faceDetectedStatus.textContent = "Multiple Faces";
+                    enrollmentHeadline.textContent = "Multiple faces detected";
+                    enrollmentMessage.textContent = "Make sure only one face is visible.";
+                    await new Promise(resolve => setTimeout(resolve, 700));
+                    continue;
+                }
+
+                if (isSaving) {
+                    await new Promise(resolve => setTimeout(resolve, 400));
+                    continue;
+                }
+
+                const descriptor = detections[0].descriptor;
+
+                if (!descriptor || descriptor.length !== 128) {
+                    faceDetectedStatus.textContent = "Invalid";
+                    enrollmentHeadline.textContent = "Invalid face descriptor";
+                    enrollmentMessage.textContent = "Please stay still and try again.";
+                    await new Promise(resolve => setTimeout(resolve, 700));
+                    continue;
+                }
+
+                isSaving = true;
+                faceDetectedStatus.textContent = "Detected";
+                setBadge("neutral", "Capturing");
+                enrollmentHeadline.textContent = "Face detected";
+                enrollmentMessage.textContent = "Capturing and saving your face profile...";
+
+                showPreviewFromCanvas();
+
+                const data = await saveEnrollmentAuto(descriptor);
+
+                faceAlreadyCaptured = true;
+                faceDetectedStatus.textContent = "Saved";
+                setBadge("success", "Saved");
+                enrollmentHeadline.textContent = "Face enrollment successful";
+                enrollmentMessage.textContent = data.message || "Your face profile has been saved.";
+                enrollmentNote.textContent = "Captured face preview is shown on the right side. You may now proceed to attendance.";
+
+                await loadEnrollmentStatus();
+                stopCamera();
+                break;
             }
-
-            if (!cameraReady || !stream) {
-                throw new Error("Camera is not started.");
-            }
-
-            isSaving = true;
-            setCaptureButtonEnabled(false);
-
-            faceDetectedStatus.textContent = "Checking";
-            setBadge("neutral", "Checking Face");
-            enrollmentHeadline.textContent = "Validating face";
-            enrollmentMessage.textContent = "Please hold still while we validate your face.";
-
-            const detections = await detectFace();
-
-            if (!Array.isArray(detections) || detections.length === 0) {
-                faceDetectedStatus.textContent = "No Face";
-                throw new Error("No face detected. Please face the camera clearly.");
-            }
-
-            if (detections.length > 1) {
-                faceDetectedStatus.textContent = "Multiple";
-                throw new Error("Multiple faces detected. Only one face should be visible.");
-            }
-
-            faceDetectedStatus.textContent = "Detected";
-
-            const descriptor = Array.from(detections[0].descriptor);
-
-            if (!Array.isArray(descriptor) || descriptor.length !== 128) {
-                faceDetectedStatus.textContent = "Invalid";
-                throw new Error("Generated face descriptor is invalid.");
-            }
-
-            const res = await fetch("includes/face_enrollment_save.php", {
-                method: "POST",
-                credentials: "same-origin",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    descriptor,
-                    algorithm: "face-api.js-128d"
-                })
-            });
-
-            const data = await res.json();
-
-            if (!data.ok) {
-                throw new Error(data.message || "Failed to save face enrollment.");
-            }
-
-            faceDetectedStatus.textContent = "Saved";
-            setBadge("success", "Saved");
-            enrollmentHeadline.textContent = "Face enrollment successful";
-            enrollmentMessage.textContent = data.message || "Your face profile has been saved.";
-            enrollmentNote.textContent = "You may now use attendance verification with this enrolled face profile.";
-
-            await loadEnrollmentStatus();
-            setCaptureButtonEnabled(true);
         } catch (err) {
-            console.error("Enrollment save error:", err);
+            console.error("Auto enrollment error:", err);
             setBadge("danger", "Failed");
             enrollmentHeadline.textContent = "Face enrollment failed";
             enrollmentMessage.textContent = err.message || "Please try again.";
         } finally {
             isSaving = false;
-            if (cameraReady) {
-                setCaptureButtonEnabled(true);
-            }
+            autoLoopRunning = false;
         }
     }
 
@@ -322,16 +355,15 @@ document.addEventListener("DOMContentLoaded", () => {
             enrollmentMessage.textContent = "Click Start Camera to open it again.";
             cameraHeadline.textContent = "Camera not started";
             cameraMessage.textContent = "Start the camera, face forward, and keep your face centered.";
+            enrollmentNote.textContent = "No need to click save. The system will auto-capture when one face is detected.";
             return;
         }
 
         await startCamera();
     });
 
-    captureEnrollBtn.addEventListener("click", saveEnrollment);
-
     setStartCameraButtonClosed();
-    setCaptureButtonEnabled(false);
+    resetPreview();
 
     loadEnrollmentStatus();
     loadModels();

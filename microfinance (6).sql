@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 11, 2026 at 02:43 AM
+-- Generation Time: Mar 11, 2026 at 10:24 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -34,6 +34,13 @@ CREATE TABLE `attendance_capture` (
   `CapturedAt` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `attendance_capture`
+--
+
+INSERT INTO `attendance_capture` (`CaptureID`, `EventID`, `ImagePath`, `CapturedAt`) VALUES
+(1, 5, 'uploads/attendance_capture/emp_31_20260311_220341.jpeg', '2026-03-12 05:03:41');
+
 -- --------------------------------------------------------
 
 --
@@ -56,6 +63,13 @@ CREATE TABLE `attendance_event` (
   `CapturedAt` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `attendance_event`
+--
+
+INSERT INTO `attendance_event` (`EventID`, `SessionID`, `EventType`, `EventTime`, `Latitude`, `Longitude`, `LocationID`, `DistanceMeters`, `GeoStatus`, `FaceStatus`, `FaceScore`, `LivenessStatus`, `CapturedAt`) VALUES
+(5, 5, 'TIME_IN', '2026-03-12 05:03:41', 14.7379815, 121.0157219, 3, 12, 'IN_GEOFENCE', 'MATCH', NULL, 'NOT_CHECKED', '2026-03-11 21:03:41');
+
 -- --------------------------------------------------------
 
 --
@@ -71,6 +85,13 @@ CREATE TABLE `attendance_session` (
   `CreatedAt` timestamp NOT NULL DEFAULT current_timestamp(),
   `ClosedAt` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `attendance_session`
+--
+
+INSERT INTO `attendance_session` (`SessionID`, `EmployeeID`, `WorkDate`, `AssignmentID`, `Status`, `CreatedAt`, `ClosedAt`) VALUES
+(5, 31, '2026-03-11', 896, 'OPEN', '2026-03-11 21:03:41', NULL);
 
 -- --------------------------------------------------------
 
@@ -287,12 +308,7 @@ CREATE TABLE `employee_face_profile` (
 --
 
 INSERT INTO `employee_face_profile` (`FaceProfileID`, `EmployeeID`, `Embedding`, `Algorithm`, `EnrolledAt`, `EnrolledByAccountID`, `IsActive`, `UpdatedAt`) VALUES
-(7, 30, '\0', 'face-api.js-128d', '2026-03-01 23:04:21', NULL, 1, '2026-03-01 15:04:21'),
-(8, 31, '\0', 'face-api.js-128d', '2026-03-01 23:04:21', NULL, 1, '2026-03-01 15:04:21'),
-(9, 32, '\0', 'face-api.js-128d', '2026-03-01 23:04:21', NULL, 1, '2026-03-01 15:04:21'),
-(10, 33, '\0', 'face-api.js-128d', '2026-03-01 23:04:21', NULL, 1, '2026-03-01 15:04:21'),
-(11, 34, '\0', 'face-api.js-128d', '2026-03-01 23:04:21', NULL, 1, '2026-03-01 15:04:21'),
-(12, 35, '\0', 'face-api.js-128d', '2026-03-01 23:04:21', NULL, 1, '2026-03-01 15:04:21');
+(17, 31, '[-0.17097972333431244,0.14249703288078308,0.03973972797393799,0.00665328511968255,-0.0731005147099495,-0.08236083388328552,-0.05966727063059807,-0.11160774528980255,0.1283261626958847,-0.0042829448357224464,0.262442022562027,-0.04099872335791588,-0.20351585745811462,-0.17870767414569855,-0.0074855913408100605,0.20636938512325287,-0.23053821921348572,-0.10994307696819305,-0.02626875974237919,0.020333582535386086,0.14339864253997803,0.026117296889424324,0.03575320914387703,0.025337424129247665,-0.05879933387041092,-0.4188937842845917,-0.06661032140254974,-0.06177675351500511,0.037306856364011765,-0.02480003796517849,-0.08549729734659195,-0.0030011418275535107,-0.22515708208084106,-0.09243658185005188,0.03500337898731232,0.11820276081562042,-0.03667769208550453,-0.03751491382718086,0.14017485082149506,-0.009807982482016087,-0.2268316149711609,0.005640964023768902,0.06595809012651443,0.23642967641353607,0.1716213971376419,0.07719975709915161,0.05569629371166229,-0.120967797935009,0.038819532841444016,-0.08062377572059631,0.016339359804987907,0.1793084442615509,0.1343449354171753,0.060364171862602234,0.018460776656866074,-0.14401748776435852,-0.008456943556666374,0.09653794765472412,-0.13037081062793732,-0.03896506130695343,0.08803752064704895,-0.0764010027050972,-0.0014996286481618881,-0.10453540831804276,0.27226880192756653,0.029552999883890152,-0.13755665719509125,-0.15365588665008545,0.040512748062610626,-0.11072933673858643,-0.11137425154447556,0.012023583054542542,-0.13568350672721863,-0.18217898905277252,-0.39001724123954773,0.013341343961656094,0.3392239809036255,0.046810224652290344,-0.22660274803638458,0.05596272274851799,-0.046950388699769974,-0.019403083249926567,0.12558665871620178,0.19014926254749298,-0.028715593740344048,0.11607495695352554,-0.141458198428154,-0.03836779296398163,0.16629378497600555,-0.06262273341417313,0.008688781410455704,0.19114923477172852,-0.017102545127272606,0.07821962237358093,0.0014489036984741688,0.008862663991749287,-0.0606793649494648,0.04363882914185524,-0.07432062178850174,-0.03143595904111862,0.01221298985183239,-0.05877596512436867,-0.0039939191192388535,0.06714732944965363,-0.14530573785305023,0.05078834667801857,0.041664376854896545,0.07009716331958771,-0.017698053270578384,-0.03346159681677818,-0.09056457132101059,-0.09847836196422577,0.0659864991903305,-0.24479515850543976,0.24140766263008118,0.2034369558095932,0.016410451382398605,0.1624303162097931,0.12421730160713196,0.11275696009397507,-0.058855243027210236,0.0024624757934361696,-0.15500251948833466,0.0058640423230826855,0.09034575521945953,-0.010919065214693546,0.12346653640270233,0.01726449839770794]', 'face-api.js-128d', '2026-03-12 04:40:19', 21, 1, '2026-03-11 20:40:19');
 
 -- --------------------------------------------------------
 
@@ -603,13 +619,6 @@ CREATE TABLE `leave_requests` (
   `UpdatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `leave_requests`
---
-
-INSERT INTO `leave_requests` (`LeaveRequestID`, `EmployeeID`, `LeaveTypeID`, `StartDate`, `EndDate`, `TotalDays`, `Reason`, `Status`, `OfficerApprovedBy`, `HRApprovedBy`, `OfficerNotes`, `HRNotes`, `AttachmentPath`, `CreatedAt`, `UpdatedAt`) VALUES
-(3, 31, 2, '2026-03-07', '2026-03-17', 11.00, 'nilalagnat po covid ', 'REJECTED', 9, 26, '', '', NULL, '2026-03-04 19:27:45', '2026-03-09 14:29:53');
-
 -- --------------------------------------------------------
 
 --
@@ -686,13 +695,6 @@ CREATE TABLE `reimbursement_claims` (
   `CreatedAt` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `reimbursement_claims`
---
-
-INSERT INTO `reimbursement_claims` (`ClaimID`, `EmployeeID`, `PeriodID`, `ClaimDate`, `Category`, `Amount`, `Description`, `ReceiptImage`, `Status`, `OfficerApprovedBy`, `HRApprovedBy`, `OfficerNotes`, `HRNotes`, `CreatedAt`) VALUES
-(7, 31, 1, '2026-02-17', 'GAS', 500.00, 'nawlan ng gas', 'uploads/claims/claim_1772656783_31.png', 'APPROVED_BY_HR', 9, 26, '', '', '2026-03-04 20:39:43');
-
 -- --------------------------------------------------------
 
 --
@@ -739,71 +741,66 @@ CREATE TABLE `roster_assignment` (
 --
 
 INSERT INTO `roster_assignment` (`AssignmentID`, `RosterID`, `EmployeeID`, `WorkDate`, `ShiftCode`, `UpdatedByAccountID`, `UpdatedAt`) VALUES
-(303, 14, 30, '2026-03-13', 'MD', 9, '2026-03-04 15:58:14'),
-(304, 14, 30, '2026-03-14', 'MD', 9, '2026-03-04 15:58:14'),
-(305, 14, 30, '2026-03-16', 'MD', 9, '2026-03-04 15:58:14'),
-(306, 14, 30, '2026-03-17', 'MD', 9, '2026-03-04 15:58:14'),
-(307, 14, 30, '2026-03-18', 'MD', 9, '2026-03-04 15:58:14'),
-(308, 14, 30, '2026-03-19', 'MD', 9, '2026-03-04 15:58:14'),
-(309, 14, 30, '2026-03-20', 'MD', 9, '2026-03-04 15:58:14'),
-(310, 14, 30, '2026-03-21', 'MD', 9, '2026-03-04 15:58:14'),
-(311, 14, 30, '2026-03-23', 'MD', 9, '2026-03-04 15:58:14'),
-(312, 14, 30, '2026-03-24', 'MD', 9, '2026-03-04 15:58:14'),
-(313, 14, 31, '2026-03-13', 'MD', 9, '2026-03-04 15:58:14'),
-(314, 14, 31, '2026-03-14', 'MD', 9, '2026-03-04 15:58:14'),
-(315, 14, 31, '2026-03-16', 'MD', 9, '2026-03-04 15:58:14'),
-(316, 14, 31, '2026-03-17', 'MD', 9, '2026-03-04 15:58:14'),
-(317, 14, 31, '2026-03-18', 'MD', 9, '2026-03-04 15:58:14'),
-(318, 14, 31, '2026-03-19', 'MD', 9, '2026-03-04 15:58:14'),
-(319, 14, 31, '2026-03-20', 'MD', 9, '2026-03-04 15:58:14'),
-(320, 14, 31, '2026-03-21', 'MD', 9, '2026-03-04 15:58:14'),
-(321, 14, 31, '2026-03-23', 'MD', 9, '2026-03-04 15:58:14'),
-(322, 14, 31, '2026-03-24', 'MD', 9, '2026-03-04 15:58:14'),
-(323, 14, 32, '2026-03-13', 'MD', 9, '2026-03-04 15:58:14'),
-(324, 14, 32, '2026-03-14', 'MD', 9, '2026-03-04 15:58:14'),
-(325, 14, 32, '2026-03-16', 'MD', 9, '2026-03-04 15:58:14'),
-(326, 14, 32, '2026-03-17', 'MD', 9, '2026-03-04 15:58:14'),
-(327, 14, 32, '2026-03-18', 'MD', 9, '2026-03-04 15:58:14'),
-(328, 14, 32, '2026-03-19', 'MD', 9, '2026-03-04 15:58:14'),
-(329, 14, 32, '2026-03-20', 'MD', 9, '2026-03-04 15:58:14'),
-(330, 14, 32, '2026-03-21', 'MD', 9, '2026-03-04 15:58:14'),
-(331, 14, 32, '2026-03-23', 'MD', 9, '2026-03-04 15:58:14'),
-(332, 14, 32, '2026-03-24', 'MD', 9, '2026-03-04 15:58:14'),
-(415, 15, 4, '2026-03-02', 'AM', 9, '2026-03-09 10:06:37'),
-(416, 15, 4, '2026-03-03', 'AM', 9, '2026-03-09 10:06:37'),
-(417, 15, 4, '2026-03-04', 'AM', 9, '2026-03-09 10:06:37'),
-(418, 15, 4, '2026-03-05', 'AM', 9, '2026-03-09 10:06:37'),
-(419, 15, 4, '2026-03-06', 'AM', 9, '2026-03-09 10:06:37'),
-(420, 15, 4, '2026-03-07', 'AM', 9, '2026-03-09 10:06:37'),
-(421, 15, 4, '2026-03-09', 'AM', 9, '2026-03-09 10:06:37'),
-(422, 15, 4, '2026-03-10', 'AM', 9, '2026-03-09 10:06:37'),
-(423, 15, 4, '2026-03-11', 'AM', 9, '2026-03-09 10:06:37'),
-(424, 15, 4, '2026-03-12', 'AM', 9, '2026-03-09 10:06:37'),
-(425, 15, 30, '2026-03-02', 'AM', 9, '2026-03-09 10:06:37'),
-(426, 15, 30, '2026-03-03', 'AM', 9, '2026-03-09 10:06:37'),
-(427, 15, 30, '2026-03-04', 'AM', 9, '2026-03-09 10:06:37'),
-(428, 15, 30, '2026-03-05', 'AM', 9, '2026-03-09 10:06:37'),
-(429, 15, 30, '2026-03-06', 'AM', 9, '2026-03-09 10:06:37'),
-(430, 15, 30, '2026-03-07', 'AM', 9, '2026-03-09 10:06:37'),
-(431, 15, 30, '2026-03-09', 'AM', 9, '2026-03-09 10:06:37'),
-(432, 15, 30, '2026-03-10', 'AM', 9, '2026-03-09 10:06:37'),
-(433, 15, 30, '2026-03-11', 'AM', 9, '2026-03-09 10:06:37'),
-(434, 15, 30, '2026-03-12', 'AM', 9, '2026-03-09 10:06:37'),
-(435, 15, 31, '2026-03-02', 'AM', 9, '2026-03-09 10:06:37'),
-(436, 15, 31, '2026-03-03', 'AM', 9, '2026-03-09 10:06:37'),
-(437, 15, 31, '2026-03-04', 'AM', 9, '2026-03-09 10:06:37'),
-(438, 15, 31, '2026-03-05', 'AM', 9, '2026-03-09 10:06:37'),
-(439, 15, 31, '2026-03-06', 'AM', 9, '2026-03-09 10:06:37'),
-(440, 15, 32, '2026-03-02', 'AM', 9, '2026-03-09 10:06:37'),
-(441, 15, 32, '2026-03-03', 'AM', 9, '2026-03-09 10:06:37'),
-(442, 15, 32, '2026-03-04', 'AM', 9, '2026-03-09 10:06:37'),
-(443, 15, 32, '2026-03-05', 'AM', 9, '2026-03-09 10:06:37'),
-(444, 15, 32, '2026-03-06', 'AM', 9, '2026-03-09 10:06:37'),
-(445, 15, 32, '2026-03-07', 'AM', 9, '2026-03-09 10:06:37'),
-(446, 15, 32, '2026-03-09', 'AM', 9, '2026-03-09 10:06:37'),
-(447, 15, 32, '2026-03-10', 'AM', 9, '2026-03-09 10:06:37'),
-(448, 15, 32, '2026-03-11', 'AM', 9, '2026-03-09 10:06:37'),
-(449, 15, 32, '2026-03-12', 'AM', 9, '2026-03-09 10:06:37');
+(882, 31, 6, '2026-03-09', 'AM', 9, '2026-03-11 04:59:39'),
+(883, 31, 6, '2026-03-10', 'AM', 9, '2026-03-11 04:59:39'),
+(884, 31, 6, '2026-03-11', 'AM', 9, '2026-03-11 04:59:39'),
+(885, 31, 6, '2026-03-12', 'AM', 9, '2026-03-11 04:59:39'),
+(886, 31, 6, '2026-03-13', 'AM', 9, '2026-03-11 04:59:39'),
+(887, 31, 6, '2026-03-14', 'AM', 9, '2026-03-11 04:59:39'),
+(888, 31, 6, '2026-03-16', 'MD', 9, '2026-03-11 04:59:39'),
+(889, 31, 6, '2026-03-17', 'MD', 9, '2026-03-11 04:59:39'),
+(890, 31, 6, '2026-03-18', 'MD', 9, '2026-03-11 04:59:39'),
+(891, 31, 6, '2026-03-19', 'MD', 9, '2026-03-11 04:59:39'),
+(892, 31, 6, '2026-03-20', 'MD', 9, '2026-03-11 04:59:39'),
+(893, 31, 6, '2026-03-21', 'MD', 9, '2026-03-11 04:59:39'),
+(894, 31, 31, '2026-03-09', 'MD', 9, '2026-03-11 04:59:39'),
+(895, 31, 31, '2026-03-10', 'MD', 9, '2026-03-11 04:59:39'),
+(896, 31, 31, '2026-03-11', 'MD', 9, '2026-03-11 04:59:39'),
+(897, 31, 31, '2026-03-12', 'MD', 9, '2026-03-11 04:59:39'),
+(898, 31, 31, '2026-03-13', 'MD', 9, '2026-03-11 04:59:39'),
+(899, 31, 31, '2026-03-14', 'MD', 9, '2026-03-11 04:59:39'),
+(900, 31, 31, '2026-03-16', 'AM', 9, '2026-03-11 04:59:39'),
+(901, 31, 31, '2026-03-17', 'AM', 9, '2026-03-11 04:59:39'),
+(902, 31, 31, '2026-03-18', 'AM', 9, '2026-03-11 04:59:39'),
+(903, 31, 31, '2026-03-19', 'AM', 9, '2026-03-11 04:59:39'),
+(904, 31, 31, '2026-03-20', 'AM', 9, '2026-03-11 04:59:39'),
+(905, 31, 31, '2026-03-21', 'AM', 9, '2026-03-11 04:59:39'),
+(906, 31, 38, '2026-03-09', 'GY', 9, '2026-03-11 04:59:39'),
+(907, 31, 38, '2026-03-10', 'GY', 9, '2026-03-11 04:59:39'),
+(908, 31, 38, '2026-03-11', 'GY', 9, '2026-03-11 04:59:39'),
+(909, 31, 38, '2026-03-12', 'GY', 9, '2026-03-11 04:59:39'),
+(910, 31, 38, '2026-03-13', 'GY', 9, '2026-03-11 04:59:39'),
+(911, 31, 38, '2026-03-14', 'GY', 9, '2026-03-11 04:59:39'),
+(912, 31, 38, '2026-03-16', 'AM', 9, '2026-03-11 04:59:39'),
+(913, 31, 38, '2026-03-17', 'AM', 9, '2026-03-11 04:59:39'),
+(914, 31, 38, '2026-03-18', 'AM', 9, '2026-03-11 04:59:39'),
+(915, 31, 38, '2026-03-19', 'AM', 9, '2026-03-11 04:59:39'),
+(916, 31, 38, '2026-03-20', 'AM', 9, '2026-03-11 04:59:39'),
+(917, 31, 38, '2026-03-21', 'AM', 9, '2026-03-11 04:59:39'),
+(918, 31, 32, '2026-03-09', 'AM', 9, '2026-03-11 04:59:39'),
+(919, 31, 32, '2026-03-10', 'AM', 9, '2026-03-11 04:59:39'),
+(920, 31, 32, '2026-03-11', 'AM', 9, '2026-03-11 04:59:39'),
+(921, 31, 32, '2026-03-12', 'AM', 9, '2026-03-11 04:59:39'),
+(922, 31, 32, '2026-03-13', 'AM', 9, '2026-03-11 04:59:39'),
+(923, 31, 32, '2026-03-14', 'AM', 9, '2026-03-11 04:59:39'),
+(924, 31, 32, '2026-03-16', 'GY', 9, '2026-03-11 04:59:39'),
+(925, 31, 32, '2026-03-17', 'GY', 9, '2026-03-11 04:59:39'),
+(926, 31, 32, '2026-03-18', 'GY', 9, '2026-03-11 04:59:39'),
+(927, 31, 32, '2026-03-19', 'GY', 9, '2026-03-11 04:59:39'),
+(928, 31, 32, '2026-03-20', 'GY', 9, '2026-03-11 04:59:39'),
+(929, 31, 32, '2026-03-21', 'GY', 9, '2026-03-11 04:59:39'),
+(930, 31, 30, '2026-03-09', 'MD', 9, '2026-03-11 04:59:39'),
+(931, 31, 30, '2026-03-10', 'MD', 9, '2026-03-11 04:59:39'),
+(932, 31, 30, '2026-03-11', 'MD', 9, '2026-03-11 04:59:39'),
+(933, 31, 30, '2026-03-12', 'MD', 9, '2026-03-11 04:59:39'),
+(934, 31, 30, '2026-03-13', 'MD', 9, '2026-03-11 04:59:39'),
+(935, 31, 30, '2026-03-14', 'MD', 9, '2026-03-11 04:59:39'),
+(936, 31, 30, '2026-03-16', 'GY', 9, '2026-03-11 04:59:39'),
+(937, 31, 30, '2026-03-17', 'GY', 9, '2026-03-11 04:59:39'),
+(938, 31, 30, '2026-03-18', 'GY', 9, '2026-03-11 04:59:39'),
+(939, 31, 30, '2026-03-19', 'GY', 9, '2026-03-11 04:59:39'),
+(940, 31, 30, '2026-03-20', 'GY', 9, '2026-03-11 04:59:39'),
+(941, 31, 30, '2026-03-21', 'GY', 9, '2026-03-11 04:59:39');
 
 -- --------------------------------------------------------
 
@@ -951,6 +948,72 @@ CREATE TABLE `timesheet_daily` (
   `UpdatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `timesheet_daily`
+--
+
+INSERT INTO `timesheet_daily` (`TimesheetDayID`, `PeriodID`, `EmployeeID`, `WorkDate`, `AssignmentID`, `SessionID`, `ShiftCode`, `ScheduledStart`, `ScheduledEnd`, `BreakMinutesPlanned`, `ActualTimeIn`, `ActualTimeOut`, `BreakMinutesActual`, `RegularMinutes`, `OvertimeMinutes`, `NightDiffMinutes`, `LateMinutes`, `UndertimeMinutes`, `DayStatus`, `Remarks`, `CreatedAt`, `UpdatedAt`) VALUES
+(1, 3, 6, '2026-03-09', 882, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(2, 3, 6, '2026-03-10', 883, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(3, 3, 6, '2026-03-11', 884, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(4, 3, 6, '2026-03-12', 885, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(5, 3, 6, '2026-03-13', 886, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(6, 3, 6, '2026-03-14', 887, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(7, 3, 6, '2026-03-16', 888, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(8, 3, 6, '2026-03-17', 889, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(9, 3, 6, '2026-03-18', 890, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(10, 3, 6, '2026-03-19', 891, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(11, 3, 6, '2026-03-20', 892, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(12, 3, 6, '2026-03-21', 893, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(13, 3, 30, '2026-03-09', 930, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(14, 3, 30, '2026-03-10', 931, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(15, 3, 30, '2026-03-11', 932, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(16, 3, 30, '2026-03-12', 933, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(17, 3, 30, '2026-03-13', 934, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(18, 3, 30, '2026-03-14', 935, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(19, 3, 30, '2026-03-16', 936, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(20, 3, 30, '2026-03-17', 937, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(21, 3, 30, '2026-03-18', 938, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(22, 3, 30, '2026-03-19', 939, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(23, 3, 30, '2026-03-20', 940, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(24, 3, 30, '2026-03-21', 941, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(25, 3, 31, '2026-03-09', 894, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(26, 3, 31, '2026-03-10', 895, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(27, 3, 31, '2026-03-11', 896, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(28, 3, 31, '2026-03-12', 897, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(29, 3, 31, '2026-03-13', 898, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(30, 3, 31, '2026-03-14', 899, NULL, 'MD', '14:00:00', '22:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(31, 3, 31, '2026-03-16', 900, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(32, 3, 31, '2026-03-17', 901, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(33, 3, 31, '2026-03-18', 902, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(34, 3, 31, '2026-03-19', 903, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(35, 3, 31, '2026-03-20', 904, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(36, 3, 31, '2026-03-21', 905, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(37, 3, 32, '2026-03-09', 918, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(38, 3, 32, '2026-03-10', 919, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(39, 3, 32, '2026-03-11', 920, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(40, 3, 32, '2026-03-12', 921, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(41, 3, 32, '2026-03-13', 922, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(42, 3, 32, '2026-03-14', 923, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(43, 3, 32, '2026-03-16', 924, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(44, 3, 32, '2026-03-17', 925, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(45, 3, 32, '2026-03-18', 926, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(46, 3, 32, '2026-03-19', 927, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(47, 3, 32, '2026-03-20', 928, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(48, 3, 32, '2026-03-21', 929, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(49, 3, 38, '2026-03-09', 906, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(50, 3, 38, '2026-03-10', 907, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(51, 3, 38, '2026-03-11', 908, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(52, 3, 38, '2026-03-12', 909, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(53, 3, 38, '2026-03-13', 910, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(54, 3, 38, '2026-03-14', 911, NULL, 'GY', '22:00:00', '06:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(55, 3, 38, '2026-03-16', 912, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(56, 3, 38, '2026-03-17', 913, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(57, 3, 38, '2026-03-18', 914, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(58, 3, 38, '2026-03-19', 915, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(59, 3, 38, '2026-03-20', 916, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03'),
+(60, 3, 38, '2026-03-21', 917, NULL, 'AM', '06:00:00', '14:00:00', 60, NULL, NULL, NULL, 0, 0, 0, 0, 0, 'OK', 'Seeded from published roster', '2026-03-11 14:05:03', '2026-03-11 14:05:03');
+
 -- --------------------------------------------------------
 
 --
@@ -1008,15 +1071,6 @@ CREATE TABLE `timesheet_employee_summary` (
   `CreatedAt` timestamp NOT NULL DEFAULT current_timestamp(),
   `UpdatedAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `timesheet_employee_summary`
---
-
-INSERT INTO `timesheet_employee_summary` (`SummaryID`, `PeriodID`, `EmployeeID`, `DepartmentID`, `PositionID`, `IsEligibleForHolidayPay`, `RegularHours`, `OvertimeHours`, `NightDiffHours`, `RegHolidayHours`, `SpecHolidayHours`, `UnworkedHolidayHours`, `HolidayOvertimeHours`, `LateMinutes`, `UndertimeMinutes`, `AbsencesHours`, `PaidLeaveHours`, `UnpaidLeaveHours`, `TotalPayableHours`, `Notes`, `CreatedAt`, `UpdatedAt`) VALUES
-(1, 1, 4, 3, 3, 1, 40.00, 2.00, 0.00, 0.00, 0.00, 0.00, 0.00, 5, 0, 0.00, 0.00, 0.00, 0.00, 'Logistics summary demo', '2026-02-25 13:34:42', '2026-02-25 13:34:42'),
-(2, 1, 6, 3, 3, 1, 38.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0, 10, 0.00, 0.00, 0.00, 0.00, 'Logistics summary demo', '2026-02-25 13:34:42', '2026-02-25 13:34:42'),
-(5, 2, 5, 4, 4, 1, 40.00, 1.50, 0.00, 0.00, 0.00, 0.00, 0.00, 0, 0, 0.00, 0.00, 0.00, 0.00, 'Finance summary demo', '2026-02-25 13:34:42', '2026-02-25 13:34:42');
 
 -- --------------------------------------------------------
 
@@ -1076,8 +1130,7 @@ CREATE TABLE `timesheet_period` (
 --
 
 INSERT INTO `timesheet_period` (`PeriodID`, `DepartmentID`, `StartDate`, `EndDate`, `Status`, `PreparedByAccountID`, `PreparedAt`, `ReviewedByAccountID`, `ReviewedAt`, `ReviewNotes`, `FinalizedByAccountID`, `FinalizedAt`, `IsArchived`, `CreatedAt`, `UpdatedAt`) VALUES
-(1, 3, '2026-02-17', '2026-02-23', 'FOR_REVIEW', 9, '2026-02-25 21:34:42', NULL, NULL, NULL, NULL, NULL, 0, '2026-02-25 13:34:42', '2026-03-03 14:42:47'),
-(2, 4, '2026-02-17', '2026-02-23', 'FOR_REVIEW', 8, '2026-02-25 21:34:42', NULL, NULL, NULL, NULL, NULL, 0, '2026-02-25 13:34:42', '2026-02-25 13:34:42');
+(3, 3, '2026-03-09', '2026-03-21', 'DRAFT', 26, '2026-03-11 22:05:03', NULL, NULL, '', NULL, NULL, 0, '2026-03-11 14:05:03', '2026-03-11 14:05:03');
 
 -- --------------------------------------------------------
 
@@ -1179,19 +1232,8 @@ CREATE TABLE `weekly_roster` (
 --
 
 INSERT INTO `weekly_roster` (`RosterID`, `DepartmentID`, `WeekStart`, `WeekEnd`, `Status`, `CreatedByAccountID`, `CreatedAt`, `UpdatedAt`, `ReviewedByAccountID`, `ReviewedAt`, `ReviewNotes`, `PublishedByAccountID`, `PublishedAt`) VALUES
-(14, 3, '2026-03-13', '2026-03-24', 'FOR_REVIEW', 9, '2026-03-04 15:54:57', '2026-03-09 06:56:43', 26, '2026-03-05 00:18:13', '', 26, '2026-03-05 00:18:13'),
-(15, 3, '2026-03-01', '2026-03-12', 'DRAFT', 9, '2026-03-04 16:09:41', '2026-03-04 16:09:41', NULL, NULL, NULL, NULL, NULL),
-(16, 3, '2026-02-25', '2026-02-28', 'DRAFT', 9, '2026-03-04 22:19:06', '2026-03-04 22:19:06', NULL, NULL, NULL, NULL, NULL),
-(17, 3, '2026-03-25', '2026-03-31', 'DRAFT', 9, '2026-03-07 11:11:58', '2026-03-07 11:11:58', NULL, NULL, NULL, NULL, NULL),
-(18, 3, '2026-04-01', '2026-04-12', 'DRAFT', 9, '2026-03-07 11:12:02', '2026-03-07 11:12:02', NULL, NULL, NULL, NULL, NULL),
-(19, 4, '2026-03-01', '2026-03-12', 'DRAFT', 8, '2026-03-09 06:52:47', '2026-03-09 06:52:47', NULL, NULL, NULL, NULL, NULL),
-(20, 4, '2026-02-25', '2026-02-28', 'DRAFT', 8, '2026-03-09 06:52:50', '2026-03-09 06:52:50', NULL, NULL, NULL, NULL, NULL),
-(21, 4, '2026-02-13', '2026-02-24', 'DRAFT', 8, '2026-03-09 06:52:51', '2026-03-09 06:52:51', NULL, NULL, NULL, NULL, NULL),
-(22, 4, '2026-02-01', '2026-02-12', 'DRAFT', 8, '2026-03-09 06:52:52', '2026-03-09 06:52:52', NULL, NULL, NULL, NULL, NULL),
-(23, 4, '2026-03-13', '2026-03-24', 'DRAFT', 8, '2026-03-09 06:52:54', '2026-03-09 06:52:54', NULL, NULL, NULL, NULL, NULL),
-(24, 4, '2026-03-25', '2026-03-31', 'DRAFT', 8, '2026-03-09 06:52:54', '2026-03-09 06:52:54', NULL, NULL, NULL, NULL, NULL),
-(25, 4, '2026-04-01', '2026-04-12', 'DRAFT', 8, '2026-03-09 06:52:54', '2026-03-09 06:52:54', NULL, NULL, NULL, NULL, NULL),
-(26, 3, '2026-02-13', '2026-02-24', 'DRAFT', 9, '2026-03-09 06:54:20', '2026-03-09 06:54:20', NULL, NULL, NULL, NULL, NULL);
+(31, 3, '2026-03-09', '2026-03-21', 'PUBLISHED', 9, '2026-03-11 04:16:30', '2026-03-11 14:05:03', 26, '2026-03-11 22:05:03', '', 26, '2026-03-11 22:05:03'),
+(32, 3, '2026-03-23', '2026-04-04', 'DRAFT', 9, '2026-03-11 14:36:45', '2026-03-11 14:36:45', NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -1215,7 +1257,8 @@ CREATE TABLE `work_locations` (
 --
 
 INSERT INTO `work_locations` (`LocationID`, `LocationName`, `Latitude`, `Longitude`, `RadiusMeters`, `IsActive`, `CreatedAt`, `UpdatedAt`) VALUES
-(2, 'Bestlink College of the Philippines - QC', 14.7285800, 121.0416100, 100, 1, '2026-03-09 09:56:16', '2026-03-09 09:56:16');
+(2, 'Bestlink College of the Philippines - QC', 14.7285800, 121.0416100, 100, 0, '2026-03-09 09:56:16', '2026-03-11 21:00:54'),
+(3, 'home', 14.7378960, 121.0156480, 100, 1, '2026-03-11 21:00:33', '2026-03-11 21:02:22');
 
 --
 -- Indexes for dumped tables
@@ -1528,19 +1571,19 @@ ALTER TABLE `work_locations`
 -- AUTO_INCREMENT for table `attendance_capture`
 --
 ALTER TABLE `attendance_capture`
-  MODIFY `CaptureID` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `CaptureID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `attendance_event`
 --
 ALTER TABLE `attendance_event`
-  MODIFY `EventID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `EventID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `attendance_session`
 --
 ALTER TABLE `attendance_session`
-  MODIFY `SessionID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `SessionID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `bankdetails`
@@ -1588,7 +1631,7 @@ ALTER TABLE `employee`
 -- AUTO_INCREMENT for table `employee_face_profile`
 --
 ALTER TABLE `employee_face_profile`
-  MODIFY `FaceProfileID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `FaceProfileID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `employee_leave_balances`
@@ -1624,7 +1667,7 @@ ALTER TABLE `holiday_type`
 -- AUTO_INCREMENT for table `leave_requests`
 --
 ALTER TABLE `leave_requests`
-  MODIFY `LeaveRequestID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `LeaveRequestID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `leave_types`
@@ -1654,7 +1697,7 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `roster_assignment`
 --
 ALTER TABLE `roster_assignment`
-  MODIFY `AssignmentID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=450;
+  MODIFY `AssignmentID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=942;
 
 --
 -- AUTO_INCREMENT for table `salary_grades`
@@ -1678,7 +1721,7 @@ ALTER TABLE `taxbenefits`
 -- AUTO_INCREMENT for table `timesheet_daily`
 --
 ALTER TABLE `timesheet_daily`
-  MODIFY `TimesheetDayID` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `TimesheetDayID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT for table `timesheet_daily_code`
@@ -1702,7 +1745,7 @@ ALTER TABLE `timesheet_employee_summary`
 -- AUTO_INCREMENT for table `timesheet_period`
 --
 ALTER TABLE `timesheet_period`
-  MODIFY `PeriodID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `PeriodID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `useraccountroles`
@@ -1720,13 +1763,13 @@ ALTER TABLE `useraccounts`
 -- AUTO_INCREMENT for table `weekly_roster`
 --
 ALTER TABLE `weekly_roster`
-  MODIFY `RosterID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `RosterID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `work_locations`
 --
 ALTER TABLE `work_locations`
-  MODIFY `LocationID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `LocationID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables

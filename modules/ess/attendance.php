@@ -1,5 +1,31 @@
 <?php
 require_once __DIR__ . "/includes/auth_employee.php";
+
+$employeeId = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
+$hasFaceProfile = false;
+
+if ($employeeId && isset($conn) && $conn instanceof mysqli) {
+    $stmt = $conn->prepare("
+        SELECT Embedding
+        FROM employee_face_profile
+        WHERE EmployeeID = ?
+          AND IsActive = 1
+        LIMIT 1
+    ");
+
+    if ($stmt) {
+        $stmt->bind_param("i", $employeeId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $profile = $result ? $result->fetch_assoc() : null;
+        $stmt->close();
+
+        if ($profile && isset($profile['Embedding'])) {
+            $embedding = json_decode($profile['Embedding'], true);
+            $hasFaceProfile = is_array($embedding) && count($embedding) === 128;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -82,10 +108,10 @@ require_once __DIR__ . "/includes/auth_employee.php";
                         </div>
 
                         <div class="company-site-box">
-    <h4>Registered Work Location</h4>
-    <p><strong id="registeredLocationName">Not yet loaded</strong></p>
-    <p id="registeredLocationMeta">Your assigned work location will appear here after validation.</p>
-</div>
+                            <h4>Registered Work Location</h4>
+                            <p><strong id="registeredLocationName">Not yet loaded</strong></p>
+                            <p id="registeredLocationMeta">Your assigned work location will appear here after validation.</p>
+                        </div>
                     </section>
 
                     <!-- RIGHT: FACIAL RECOGNITION -->
@@ -186,8 +212,10 @@ require_once __DIR__ . "/includes/auth_employee.php";
     </main>
 
     <script>
+        const HAS_FACE_PROFILE = <?php echo $hasFaceProfile ? 'true' : 'false'; ?>;
+
         document.addEventListener('DOMContentLoaded', function () {
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         });
     </script>
     <script src="../../js/ess/attendance.js?v=<?php echo time(); ?>"></script>

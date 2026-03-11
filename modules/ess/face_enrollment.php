@@ -7,7 +7,7 @@ require_once __DIR__ . "/includes/auth_employee.php";
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face Enrollment</title>
-    <link rel="stylesheet" href="../../css/ess/attendance.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../../css/ess/face_enrollment.css?v=<?php echo time(); ?>">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
@@ -24,7 +24,7 @@ require_once __DIR__ . "/includes/auth_employee.php";
                     </div>
 
                     <div class="page-header-actions" style="display:flex; gap:10px; align-items:center;">
-                        <a href="attendance.php" class="btn btn-muted">
+                        <a href="attendance.php" class="btn btn-muted btn-link">
                             <i data-lucide="arrow-left"></i>
                             Back to Attendance
                         </a>
@@ -90,11 +90,6 @@ require_once __DIR__ . "/includes/auth_employee.php";
                                     <i data-lucide="camera"></i>
                                     Start Camera
                                 </button>
-
-                                <button type="button" class="btn btn-primary" id="captureEnrollBtn" disabled>
-                                    <i data-lucide="scan-face"></i>
-                                    Save Face Enrollment
-                                </button>
                             </div>
                         </div>
                     </section>
@@ -130,6 +125,14 @@ require_once __DIR__ . "/includes/auth_employee.php";
                                 <span class="label">Mode</span>
                                 <strong id="profileModeText">New Enrollment</strong>
                             </div>
+
+                            <div class="detail-box detail-box-full">
+                                <span class="label">Captured Face Preview</span>
+                                <div id="capturedPreviewContainer">
+                                    <img id="capturedPreview" alt="Captured Face Preview">
+                                    <span id="noPreviewText">No capture yet</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="note-box" id="enrollmentNote">
@@ -137,7 +140,7 @@ require_once __DIR__ . "/includes/auth_employee.php";
                         </div>
 
                         <div class="action-row submit-row">
-                            <a href="attendance.php" class="btn btn-primary">
+                            <a href="attendance.php" class="btn btn-primary btn-link">
                                 <i data-lucide="shield-check"></i>
                                 Proceed to Attendance
                             </a>
