@@ -1,10 +1,27 @@
 document.addEventListener("DOMContentLoaded", async () => {
     if (window.lucide) lucide.createIcons();
 
+    const body = document.body;
+    const themeToggle = document.getElementById("themeToggle");
+
+    if (localStorage.getItem("theme") === "dark") {
+        body.classList.add("dark-mode");
+    }
+
+    if (themeToggle) {
+        themeToggle.addEventListener("click", () => {
+            body.classList.toggle("dark-mode");
+            localStorage.setItem("theme", body.classList.contains("dark-mode") ? "dark" : "light");
+            if (window.lucide) lucide.createIcons();
+        });
+    }
+
     const checkLocationBtn = document.getElementById("checkLocationBtn");
     const startCameraBtn = document.getElementById("startCameraBtn");
     const captureFaceBtn = document.getElementById("captureFaceBtn");
     const submitAttendanceBtn = document.getElementById("submitAttendanceBtn");
+    const submitAttendanceText = document.getElementById("submitAttendanceText");
+    const currentActionText = document.getElementById("currentActionText");
 
     const geoBadge = document.getElementById("geoBadge");
     const geoHeadline = document.getElementById("geoHeadline");
@@ -37,12 +54,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     let latestGeo = null;
     let stream = null;
     let capturedImageBase64 = "";
-    let liveDescriptor = null;
+    let latestFaceScore = null;
 
     const hasStoredFaceProfile =
         typeof HAS_FACE_PROFILE !== "undefined" ? !!HAS_FACE_PROFILE : false;
 
     let faceMode = hasStoredFaceProfile ? "verify" : "enroll";
+    let currentEventType = typeof INITIAL_EVENT_TYPE !== "undefined" ? INITIAL_EVENT_TYPE : "TIME_IN";
+    let currentEventLabel = typeof INITIAL_EVENT_LABEL !== "undefined" ? INITIAL_EVENT_LABEL : "Time In";
+
+    function setCurrentActionUI() {
+        currentActionText.textContent = currentEventLabel;
+        submitAttendanceText.textContent = currentEventLabel;
+
+        if (currentEventType === "COMPLETED") {
+            submitAttendanceBtn.disabled = true;
+            startCameraBtn.disabled = true;
+            captureFaceBtn.disabled = true;
+            attendanceNote.textContent = "Attendance for today is already completed.";
+        }
+    }
 
     function updateFaceModeUI() {
         if (!captureFaceBtn) return;
@@ -50,6 +81,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (faceMode === "enroll") {
             captureFaceBtn.innerHTML = `<i data-lucide="scan-face"></i> Enroll Face`;
             readyFace.textContent = facePassed ? "Enrolled" : "Enrollment Required";
+
             if (!facePassed) {
                 faceHeadline.textContent = geoPassed
                     ? "Face enrollment required"
@@ -61,6 +93,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
             captureFaceBtn.innerHTML = `<i data-lucide="scan-face"></i> Verify Face`;
             readyFace.textContent = facePassed ? "Passed" : "Pending";
+
             if (!facePassed) {
                 faceHeadline.textContent = geoPassed
                     ? "You may now verify your face"
@@ -75,8 +108,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function updateOverall() {
-        const ready = geoPassed && facePassed;
-        readyOverall.textContent = ready ? "Ready" : "Waiting";
+        const ready = geoPassed && facePassed && currentEventType !== "COMPLETED";
+        readyOverall.textContent = currentEventType === "COMPLETED" ? "Completed" : (ready ? "Ready" : "Waiting");
         submitAttendanceBtn.disabled = !ready;
     }
 
@@ -103,7 +136,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             await faceapi.nets.faceLandmark68Net.loadFromUri("../../models");
             await faceapi.nets.faceRecognitionNet.loadFromUri("../../models");
             modelsLoaded = true;
-            console.log("Face models loaded");
         } catch (error) {
             console.error("Model loading failed:", error);
             modelsLoaded = false;
@@ -169,15 +201,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             throw new Error(result.message || "Failed to save face profile.");
         }
 
-        liveDescriptor = averagedDescriptor;
         facePassed = true;
         faceMode = "verify";
+        latestFaceScore = null;
 
         faceDetectedStatus.textContent = "Yes";
         captureStatus.textContent = "Enrolled";
         readyFace.textContent = "Enrolled";
         faceHeadline.textContent = "Face enrolled successfully";
-        faceMessage.textContent = "Your face profile has been saved. You may now submit attendance.";
+        faceMessage.textContent = "Your face profile has been saved. You may now continue attendance.";
         attendanceNote.textContent = "Face enrollment complete. Attendance is ready.";
     }
 
@@ -208,7 +240,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             throw new Error(result.message || "Face verification failed.");
         }
 
-        liveDescriptor = descriptorArray;
+        latestFaceScore = result.distance !== undefined && result.distance !== null
+            ? Number(result.distance)
+            : null;
+
         facePassed = true;
 
         faceDetectedStatus.textContent = "Yes";
@@ -220,9 +255,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     await loadModels();
+    setCurrentActionUI();
     updateFaceModeUI();
+    updateOverall();
 
     checkLocationBtn?.addEventListener("click", async () => {
+        if (currentEventType === "COMPLETED") {
+            attendanceNote.textContent = "Attendance for today is already completed.";
+            return;
+        }
+
         if (!navigator.geolocation) {
             geoBadge.textContent = "Unsupported";
             geoHeadline.textContent = "Geolocation not supported";
@@ -301,11 +343,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                             if (faceMode === "enroll") {
                                 faceHeadline.textContent = "Face enrollment required";
                                 faceMessage.textContent = "Start the camera and enroll your face.";
-                                attendanceNote.textContent = "Geolocation passed. Proceed to face enrollment.";
+                                attendanceNote.textContent = `Geolocation passed. Proceed to face enrollment before ${currentEventLabel}.`;
                             } else {
                                 faceHeadline.textContent = "You may now open the camera";
                                 faceMessage.textContent = "Start the camera and verify your face.";
-                                attendanceNote.textContent = "Geolocation passed. Proceed to face verification.";
+                                attendanceNote.textContent = `Geolocation passed. Proceed to face verification for ${currentEventLabel}.`;
                             }
                         } else {
                             startCameraBtn.disabled = true;
@@ -361,7 +403,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     startCameraBtn?.addEventListener("click", async () => {
-        if (!geoPassed || !modelsLoaded) return;
+        if (!geoPassed || !modelsLoaded || currentEventType === "COMPLETED") return;
 
         try {
             if (stream) {
@@ -389,8 +431,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 attendanceNote.textContent = "Camera is active. Enroll your face clearly.";
             } else {
                 faceHeadline.textContent = "Camera active";
-                faceMessage.textContent = "Center your face inside the frame, then click Verify Face.";
-                attendanceNote.textContent = "Camera is active. Verify your face clearly.";
+                faceMessage.textContent = `Center your face inside the frame, then click Verify Face before ${currentEventLabel}.`;
+                attendanceNote.textContent = `Camera is active. Verify your face for ${currentEventLabel}.`;
             }
         } catch (error) {
             console.error(error);
@@ -403,7 +445,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     captureFaceBtn?.addEventListener("click", async () => {
-        if (!stream || !modelsLoaded) return;
+        if (!stream || !modelsLoaded || currentEventType === "COMPLETED") return;
 
         if (!video.videoWidth || !video.videoHeight) {
             faceHeadline.textContent = "Camera not ready";
@@ -446,16 +488,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     submitAttendanceBtn?.addEventListener("click", async () => {
+        if (currentEventType === "COMPLETED") {
+            attendanceNote.textContent = "Attendance for today is already completed.";
+            return;
+        }
+
         if (!geoPassed || !facePassed || !latestGeo || !capturedImageBase64) {
             attendanceNote.textContent = "Complete geolocation and face capture first.";
             return;
         }
 
         submitAttendanceBtn.disabled = true;
-        attendanceNote.textContent = "Submitting attendance...";
+        attendanceNote.textContent = `Submitting ${currentEventLabel}...`;
 
         try {
             const formData = new FormData();
+            formData.append("event_type", currentEventType);
             formData.append("latitude", latestGeo.input.latitude);
             formData.append("longitude", latestGeo.input.longitude);
             formData.append("location_id", latestGeo.location?.LocationID || "");
@@ -463,6 +511,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             formData.append("face_image", capturedImageBase64);
             formData.append("face_status", "MATCH");
             formData.append("liveness_status", "NOT_CHECKED");
+            formData.append("face_score", latestFaceScore !== null ? latestFaceScore : "");
 
             const response = await fetch("includes/submit_attendance.php", {
                 method: "POST",
@@ -472,8 +521,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             const result = await response.json();
 
             if (result.ok) {
+                let msg = result.message || `${currentEventLabel} submitted successfully.`;
+
+                if (result.timesheet_message) {
+                    msg += ` ${result.timesheet_message}`;
+                }
+
                 readyOverall.textContent = "Submitted";
-                attendanceNote.textContent = result.message || "Attendance submitted successfully.";
+                attendanceNote.textContent = msg;
 
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
@@ -483,6 +538,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 startCameraBtn.disabled = true;
                 captureFaceBtn.disabled = true;
                 submitAttendanceBtn.disabled = true;
+
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1200);
             } else {
                 attendanceNote.textContent = result.message || "Attendance submission failed.";
                 submitAttendanceBtn.disabled = false;

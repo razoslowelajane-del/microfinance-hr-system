@@ -3,6 +3,8 @@ require_once __DIR__ . "/includes/auth_employee.php";
 
 $employeeId = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
 $hasFaceProfile = false;
+$todayEventType = 'TIME_IN';
+$todayEventLabel = 'Time In';
 
 if ($employeeId && isset($conn) && $conn instanceof mysqli) {
     $stmt = $conn->prepare("
@@ -23,6 +25,52 @@ if ($employeeId && isset($conn) && $conn instanceof mysqli) {
         if ($profile && isset($profile['Embedding'])) {
             $embedding = json_decode($profile['Embedding'], true);
             $hasFaceProfile = is_array($embedding) && count($embedding) === 128;
+        }
+    }
+
+    $eventStmt = $conn->prepare("
+        SELECT ae.EventType
+        FROM attendance_event ae
+        INNER JOIN attendance_session s ON s.SessionID = ae.SessionID
+        WHERE s.EmployeeID = ?
+          AND s.WorkDate = CURDATE()
+        ORDER BY ae.EventTime ASC, ae.EventID ASC
+    ");
+
+    if ($eventStmt) {
+        $eventStmt->bind_param("i", $employeeId);
+        $eventStmt->execute();
+        $eventResult = $eventStmt->get_result();
+
+        $hasTimeIn = false;
+        $hasBreakIn = false;
+        $hasBreakOut = false;
+        $hasTimeOut = false;
+
+        while ($row = $eventResult->fetch_assoc()) {
+            $type = strtoupper((string) ($row['EventType'] ?? ''));
+            if ($type === 'TIME_IN') $hasTimeIn = true;
+            if ($type === 'BREAK_IN') $hasBreakIn = true;
+            if ($type === 'BREAK_OUT') $hasBreakOut = true;
+            if ($type === 'TIME_OUT') $hasTimeOut = true;
+        }
+        $eventStmt->close();
+
+        if (!$hasTimeIn) {
+            $todayEventType = 'TIME_IN';
+            $todayEventLabel = 'Time In';
+        } elseif (!$hasBreakIn) {
+            $todayEventType = 'BREAK_IN';
+            $todayEventLabel = 'Break In';
+        } elseif (!$hasBreakOut) {
+            $todayEventType = 'BREAK_OUT';
+            $todayEventLabel = 'Break Out';
+        } elseif (!$hasTimeOut) {
+            $todayEventType = 'TIME_OUT';
+            $todayEventLabel = 'Time Out';
+        } else {
+            $todayEventType = 'COMPLETED';
+            $todayEventLabel = 'Completed';
         }
     }
 }
@@ -60,7 +108,6 @@ if ($employeeId && isset($conn) && $conn instanceof mysqli) {
                 </header>
 
                 <div class="attendance-grid">
-                    <!-- LEFT: GEOLOCATION -->
                     <section class="card geo-card">
                         <div class="card-head">
                             <div class="head-icon primary-soft">
@@ -114,7 +161,6 @@ if ($employeeId && isset($conn) && $conn instanceof mysqli) {
                         </div>
                     </section>
 
-                    <!-- RIGHT: FACIAL RECOGNITION -->
                     <section class="card face-card">
                         <div class="card-head">
                             <div class="head-icon neutral-soft">
@@ -191,6 +237,10 @@ if ($employeeId && isset($conn) && $conn instanceof mysqli) {
                             <strong id="readyFace">Pending</strong>
                         </div>
                         <div class="readiness-item">
+                            <span>Current Action</span>
+                            <strong id="currentActionText"><?php echo htmlspecialchars($todayEventLabel); ?></strong>
+                        </div>
+                        <div class="readiness-item">
                             <span>Overall</span>
                             <strong id="readyOverall">Waiting</strong>
                         </div>
@@ -199,7 +249,7 @@ if ($employeeId && isset($conn) && $conn instanceof mysqli) {
                     <div class="action-row submit-row">
                         <button type="button" class="btn btn-primary" id="submitAttendanceBtn" disabled>
                             <i data-lucide="check-check"></i>
-                            Submit Attendance
+                            <span id="submitAttendanceText"><?php echo htmlspecialchars($todayEventLabel); ?></span>
                         </button>
                     </div>
 
@@ -213,6 +263,8 @@ if ($employeeId && isset($conn) && $conn instanceof mysqli) {
 
     <script>
         const HAS_FACE_PROFILE = <?php echo $hasFaceProfile ? 'true' : 'false'; ?>;
+        const INITIAL_EVENT_TYPE = <?php echo json_encode($todayEventType); ?>;
+        const INITIAL_EVENT_LABEL = <?php echo json_encode($todayEventLabel); ?>;
 
         document.addEventListener('DOMContentLoaded', function () {
             if (window.lucide) lucide.createIcons();
