@@ -12,7 +12,7 @@ function isActive($page, $current) {
     return ($page === $current) ? 'active' : '';
 }
 
-$isAttendanceOpen = in_array($current_page, ['attendance.php', 'my_schedule.php']);
+$isAttendanceOpen = in_array($current_page, ['attendance.php', 'face_enrollment.php', 'my_schedule.php']);
 $isLeaveOpen  = in_array($current_page, ['leave_apply.php', 'leave_history.php']);
 $isClaimsOpen = in_array($current_page, ['claims_apply.php', 'claims_history.php']);
 ?>
@@ -67,6 +67,12 @@ $isClaimsOpen = in_array($current_page, ['claims_apply.php', 'claims_history.php
                         <i data-lucide="camera"></i>
                         <span>Attendance</span>
                     </a>
+
+                    <a href="face_enrollment.php" class="submenu-item <?php echo isActive('face_enrollment.php', $current_page); ?>">
+                        <i data-lucide="user-round-check"></i>
+                        <span>Face Enrollment</span>
+                    </a>
+
                     <a href="my_schedule.php" class="submenu-item <?php echo isActive('my_schedule.php', $current_page); ?>">
                         <i data-lucide="calendar-days"></i>
                         <span>My Schedule</span>
