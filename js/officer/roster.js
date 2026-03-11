@@ -1,777 +1,970 @@
+const ROSTER_CTX = window.__ROSTER_CTX__ || {};
+const AUTO_SAVE_DELAY = 900;
+
+const state = {
+  roster: null,
+  dates: [],
+  employees: [],
+  holidays: [],
+  holidayMeta: {},
+  leaves: {},
+  assignments: {},
+  shifts: [],
+  today: null,
+  selectedShift: null,
+  changedCells: {},
+  pendingAiAssignments: {},
+  autoSaveTimer: null,
+  isSaving: false,
+  searchTerm: ""
+};
+
+const $ = (id) => document.getElementById(id);
+
 document.addEventListener("DOMContentLoaded", () => {
-  const rosterBody = document.getElementById("rosterBody");
-  const rosterHead = document.getElementById("rosterHead");
-  const periodLabel = document.getElementById("periodLabel");
-  const shiftSelector = document.getElementById("shiftSelector");
-  const searchInput = document.getElementById("searchInput");
-
-  const btnAiSuggest = document.getElementById("btnAiSuggest");
-  const prevBtn = document.getElementById("prevPeriod");
-  const nextBtn = document.getElementById("nextPeriod");
-  const submitBtn = document.getElementById("submitToHR");
-
-  const btnFillAll = document.getElementById("btnFillAll");
-  const btnClearRange = document.getElementById("btnClearRange");
-
-  const statEmployees = document.getElementById("statEmployees");
-  const statUnassigned = document.getElementById("statUnassigned");
-  const statCoverage = document.getElementById("statCoverage");
-  const statRosterStatus = document.getElementById("statRosterStatus");
-
-  let selectedShift = null;
-  let currentPeriodStart = null;
-  let currentRosterId = null;
-  let currentRosterStatus = "DRAFT";
-  let currentDatesCache = [];
-  let currentRowsCache = [];
-  let loadedShifts = [];
-
-  const toast = (icon, title) =>
-    Swal.fire({
-      toast: true,
-      position: "top-end",
-      icon,
-      title,
-      showConfirmButton: false,
-      timer: 1800,
-      timerProgressBar: true
-    });
-
-  const escapeHtml = (str) =>
-    String(str ?? "").replace(/[&<>"']/g, (m) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    }[m]));
-
-  const to12h = (timeStr = "") => {
-    if (!timeStr.includes(":")) return "";
-    const [hh, mm] = timeStr.split(":");
-    const d = new Date();
-    d.setHours(parseInt(hh, 10), parseInt(mm, 10), 0, 0);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
-
-  const toISO = (dt) => {
-    const yyyy = dt.getFullYear();
-    const mm = String(dt.getMonth() + 1).padStart(2, "0");
-    const dd = String(dt.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-  const fmtLabel = (start, end) => {
-    const s = new Date(`${start}T00:00:00`);
-    const e = new Date(`${end}T00:00:00`);
-    const opts = { month: "short", day: "2-digit" };
-    return `${s.toLocaleDateString(undefined, opts)} - ${e.toLocaleDateString(undefined, opts)}, ${e.getFullYear()}`;
-  };
-
-  const isEditableStatus = (status) => {
-    const s = String(status || "").toUpperCase();
-    return s === "DRAFT" || s === "RETURNED";
-  };
-
-  const computePrevNextStart = (currentStart) => {
-    const [y, m, d] = currentStart.split("-").map(Number);
-
-    if (d === 1) {
-      return {
-        prev: toISO(new Date(y, m - 2, 25)),
-        next: toISO(new Date(y, m - 1, 13))
-      };
-    }
-
-    if (d === 13) {
-      return {
-        prev: toISO(new Date(y, m - 1, 1)),
-        next: toISO(new Date(y, m - 1, 25))
-      };
-    }
-
-    return {
-      prev: toISO(new Date(y, m - 1, 13)),
-      next: toISO(new Date(y, m, 1))
-    };
-  };
-
-  const getShiftPillClass = (value) => {
-    const v = String(value || "").trim().toUpperCase();
-
-    if (v === "OFF") return "shift-off";
-    if (v === "LEAVE") return "shift-leave";
-    if (["M", "AM", "MORNING"].includes(v)) return "shift-morning";
-    if (["A", "PM", "AFTERNOON", "MD"].includes(v)) return "shift-afternoon";
-    if (["N", "NS", "NIGHT", "GY"].includes(v)) return "shift-night";
-
-    return "shift-custom";
-  };
-
-  const formatCellHTML = (val) => {
-    const v = String(val ?? "-").trim();
-    if (!v || v === "-") return `<span style="opacity:.55;">-</span>`;
-    if (v === "LEAVE") return `<span class="shift-pill shift-leave">LEAVE</span>`;
-    return `<span class="shift-pill ${getShiftPillClass(v)}">${escapeHtml(v)}</span>`;
-  };
-
-  const updateStats = (rows = []) => {
-    if (statEmployees) statEmployees.textContent = rows.length;
-
-    if (statUnassigned) {
-      let totalUnassigned = 0;
-
-      rows.forEach((emp) => {
-        (emp.days || []).forEach((day) => {
-          const value = String(day.value ?? "").trim();
-          if (!value || value === "-") totalUnassigned++;
-        });
-      });
-
-      statUnassigned.textContent = totalUnassigned;
-    }
-
-    if (statCoverage && currentDatesCache.length) {
-      statCoverage.textContent = `${currentDatesCache.length} Days`;
-    }
-
-    if (statRosterStatus) {
-      statRosterStatus.textContent = currentRosterStatus || "Draft";
-    }
-  };
-
-  const buildHeader = (dates) => {
-    const tr1 = document.createElement("tr");
-    const tr2 = document.createElement("tr");
-
-    const thEmp = document.createElement("th");
-    thEmp.className = "emp-col";
-    thEmp.rowSpan = 2;
-    thEmp.textContent = "Employee & Position";
-    tr1.appendChild(thEmp);
-
-    dates.forEach((d) => {
-      const th1 = document.createElement("th");
-      th1.textContent = d.dow;
-      tr1.appendChild(th1);
-
-      const th2 = document.createElement("th");
-      th2.innerHTML =
-        `<div>${escapeHtml(d.day)}</div>` +
-        (d.holiday
-          ? `<div class="holiday-badge" title="${escapeHtml(d.holiday.HolidayName)}">${escapeHtml(d.holiday.TypeCode)}: ${escapeHtml(d.holiday.HolidayName)}</div>`
-          : "");
-      tr2.appendChild(th2);
-    });
-
-    rosterHead.innerHTML = "";
-    rosterHead.append(tr1, tr2);
-  };
-
-  const renderRows = (rows, dates) => {
-    rosterBody.innerHTML = "";
-
-    if (!rows.length) {
-      rosterBody.innerHTML = `
-        <tr>
-          <td colspan="${1 + dates.length}" style="text-align:center;">
-            No employees found for this department.
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    const editable = isEditableStatus(currentRosterStatus);
-
-    rows.forEach((emp) => {
-      const tr = document.createElement("tr");
-      if (emp.is_me) tr.classList.add("row-self");
-
-      const tdEmp = document.createElement("td");
-      tdEmp.className = "emp-col";
-      tdEmp.innerHTML = `
-        <div class="emp-info">
-          <div class="emp-name">
-            ${escapeHtml(emp.name)}
-            ${emp.is_me ? `<span class="badge-me">(YOU)</span>` : ""}
-          </div>
-          <span class="emp-pos">${escapeHtml(emp.position || "")}</span>
-        </div>
-      `;
-      tr.appendChild(tdEmp);
-
-      (emp.days || []).forEach((dayObj) => {
-        const td = document.createElement("td");
-        td.dataset.empId = emp.EmployeeID;
-        td.dataset.date = dayObj.date;
-        td.innerHTML = formatCellHTML(dayObj.value);
-
-        if (dayObj.is_leave) {
-          td.className = "cell-leave";
-          td.title = dayObj.leave_label || "Approved Leave";
-        } else if (emp.is_me || !editable) {
-          td.className = "cell-disabled";
-        } else {
-          td.className = "cell-editable";
-          td.addEventListener("click", () => saveShift(td, emp.EmployeeID, dayObj.date));
-        }
-
-        if (dayObj.ai_suggested && !dayObj.is_leave) {
-          td.classList.add("ai-suggested");
-          td.title = dayObj.ai_reason || "AI suggestion";
-        }
-
-        tr.appendChild(td);
-      });
-
-      rosterBody.appendChild(tr);
-    });
-  };
-
-  const renderShiftSelector = () => {
-    if (!loadedShifts.length) {
-      shiftSelector.innerHTML = `<div class="shift-loading">No shifts found.</div>`;
-      return;
-    }
-
-    shiftSelector.innerHTML = "";
-
-    loadedShifts.forEach((s) => {
-      const isOff = String(s.ShiftCode).toUpperCase() === "OFF";
-      const start = s.StartTime ? to12h(s.StartTime) : "";
-      const end = s.EndTime ? to12h(s.EndTime) : "";
-
-      const div = document.createElement("div");
-      div.className = `shift-option${s.ShiftCode === selectedShift ? " active" : ""}`;
-
-      div.innerHTML = `
-        <span class="shift-color"></span>
-        <div class="shift-meta">
-          <strong>${escapeHtml(s.ShiftName)} (${escapeHtml(s.ShiftCode)})</strong>
-          <small>${isOff ? "No Duty" : `${start} - ${end}`}</small>
-        </div>
-      `;
-
-      if (isOff) {
-        const colorEl = div.querySelector(".shift-color");
-        if (colorEl) colorEl.style.background = "#ef4444";
-      }
-
-      div.addEventListener("click", () => {
-        document.querySelectorAll(".shift-option").forEach((x) => x.classList.remove("active"));
-        div.classList.add("active");
-        selectedShift = s.ShiftCode;
-      });
-
-      shiftSelector.appendChild(div);
-    });
-  };
-
-  const loadShifts = async () => {
-    shiftSelector.innerHTML = `<div class="shift-loading">Loading shifts…</div>`;
-
-    try {
-      const res = await fetch("includes/shifts.php");
-      const json = await res.json();
-
-      if (json.error) {
-        shiftSelector.innerHTML = `<div style="color:#ef4444;">${escapeHtml(json.error)}</div>`;
-        return;
-      }
-
-      loadedShifts = json.shifts || [];
-      const defaultShift = loadedShifts.find((s) => s.ShiftCode !== "OFF") || loadedShifts[0];
-      selectedShift = defaultShift ? defaultShift.ShiftCode : null;
-
-      renderShiftSelector();
-    } catch (err) {
-      console.error("loadShifts error:", err);
-      shiftSelector.innerHTML = `<div style="color:#ef4444;">Failed to load shifts.</div>`;
-    }
-  };
-
-  const loadRoster = async (periodStart = null) => {
-    rosterBody.innerHTML = `<tr><td style="text-align:center;">Loading…</td></tr>`;
-
-    try {
-      const url = periodStart
-        ? `includes/roster_data.php?period_start=${encodeURIComponent(periodStart)}`
-        : "includes/roster_data.php";
-
-      const res = await fetch(url);
-      const json = await res.json();
-
-      if (json.error) {
-        rosterBody.innerHTML = `<tr><td style="color:#ef4444;text-align:center;">${escapeHtml(json.error)}</td></tr>`;
-        return;
-      }
-
-      const roster = json.roster || {};
-      const dates = json.dates || [];
-      const rows = json.rows || [];
-
-      currentPeriodStart = roster.StartDate || null;
-      currentRosterId = roster.RosterID || null;
-      currentRosterStatus = roster.Status || "DRAFT";
-      currentDatesCache = dates;
-      currentRowsCache = rows;
-
-      if (roster.StartDate && roster.EndDate) {
-        periodLabel.textContent = fmtLabel(roster.StartDate, roster.EndDate);
-      } else {
-        periodLabel.textContent = "No active period";
-      }
-
-      buildHeader(dates);
-      renderRows(rows, dates);
-      updateStats(rows);
-    } catch (err) {
-      console.error("loadRoster error:", err);
-      rosterBody.innerHTML = `<tr><td style="color:#ef4444;text-align:center;">Failed to load roster.</td></tr>`;
-    }
-  };
-
-  const saveShift = async (td, empId, workDate) => {
-    if (!selectedShift) return;
-
-    if (!isEditableStatus(currentRosterStatus)) {
-      toast("warning", `Roster locked: ${currentRosterStatus}`);
-      return;
-    }
-
-    const oldHTML = td.innerHTML;
-    td.innerHTML = formatCellHTML(selectedShift);
-
-    try {
-      const form = new URLSearchParams();
-      form.set("employee_id", empId);
-      form.set("work_date", workDate);
-      form.set("shift_code", selectedShift);
-      form.set("roster_id", currentRosterId);
-
-      const res = await fetch("includes/save_assignment.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: form.toString()
-      });
-
-      const json = await res.json();
-
-      if (json.status !== "success") {
-        td.innerHTML = oldHTML;
-        Swal.fire({
-          icon: "error",
-          title: "Save failed",
-          text: json.message || "Failed saving shift"
-        });
-        return;
-      }
-
-      td.innerHTML = formatCellHTML(json.display || selectedShift);
-      td.classList.remove("ai-suggested");
-      td.removeAttribute("title");
-
-      toast("success", "Saved");
-
-      const row = currentRowsCache.find((r) => String(r.EmployeeID) === String(empId));
-      const day = row?.days?.find((d) => d.date === workDate);
-
-      if (day) {
-        day.value = json.display || selectedShift;
-        day.ai_suggested = false;
-        day.ai_reason = "";
-      }
-
-      updateStats(currentRowsCache);
-    } catch (err) {
-      console.error("saveShift error:", err);
-      td.innerHTML = oldHTML;
-      Swal.fire({
-        icon: "error",
-        title: "Network error",
-        text: "Please try again."
-      });
-    }
-  };
-
-  const applySearch = (q) => {
-    const query = String(q || "").toLowerCase().trim();
-
-    if (!query) {
-      renderRows(currentRowsCache, currentDatesCache);
-      return;
-    }
-
-    const filtered = currentRowsCache.filter((r) =>
-      (r.name || "").toLowerCase().includes(query) ||
-      (r.position || "").toLowerCase().includes(query)
-    );
-
-    renderRows(filtered, currentDatesCache);
-  };
-
-  const askRangeModal = async () => {
-    if (!currentDatesCache.length) return null;
-
-    const first = currentDatesCache[0].date;
-    const last = currentDatesCache[currentDatesCache.length - 1].date;
-
-    const { value } = await Swal.fire({
-      title: "Select date range",
-      html: `
-        <div style="display:flex;flex-direction:column;gap:10px;text-align:left;">
-          <label>Start (min: ${first})</label>
-          <input id="swStart" class="swal2-input" type="date" min="${first}" max="${last}" value="${first}">
-          <label>End (max: ${last})</label>
-          <input id="swEnd" class="swal2-input" type="date" min="${first}" max="${last}" value="${last}">
-          <small style="opacity:.7;">Sundays are skipped automatically. Approved leave dates are skipped too.</small>
-        </div>
-      `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: "Continue",
-      preConfirm: () => {
-        const start = document.getElementById("swStart")?.value.trim();
-        const end = document.getElementById("swEnd")?.value.trim();
-
-        if (!start || !end) {
-          Swal.showValidationMessage("Start and End are required.");
-          return null;
-        }
-
-        if (start > end) {
-          Swal.showValidationMessage("Start date cannot be later than end date.");
-          return null;
-        }
-
-        return { start, end };
-      }
-    });
-
-    return value || null;
-  };
-
-  const doBulkRequest = async (payload) => {
-    try {
-      Swal.fire({
-        title: payload.mode === "CLEAR" ? "Clearing..." : "Applying...",
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
-
-      const form = new URLSearchParams();
-      form.set("roster_id", currentRosterId);
-      form.set("mode", payload.mode);
-      form.set("start_date", payload.start_date);
-      form.set("end_date", payload.end_date);
-
-      if (payload.mode === "FIXED") {
-        form.set("shift_code", payload.shift_code);
-      } else if (payload.mode === "RANDOM") {
-        form.set("shift_pool", payload.shift_pool);
-      }
-
-      const res = await fetch("includes/bulk_assign.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: form.toString()
-      });
-
-      const raw = await res.text();
-
-      if (!res.ok) {
-        Swal.fire({
-          icon: "error",
-          title: `HTTP ${res.status}`,
-          html: `<pre style="text-align:left;white-space:pre-wrap;max-height:260px;overflow:auto;">${escapeHtml(raw).slice(0, 1500)}</pre>`
-        });
-        return;
-      }
-
-      let json;
-      try {
-        json = JSON.parse(raw);
-      } catch {
-        Swal.fire({
-          icon: "error",
-          title: "Invalid JSON from server",
-          html: `<pre style="text-align:left;white-space:pre-wrap;max-height:260px;overflow:auto;">${escapeHtml(raw).slice(0, 1500)}</pre>`
-        });
-        return;
-      }
-
-      if (json.status !== "success") {
-        Swal.fire({
-          icon: "error",
-          title: payload.mode === "CLEAR" ? "Clear failed" : "Bulk failed",
-          text: json.message || "Bulk operation failed."
-        });
-        return;
-      }
-
-      Swal.fire({
-        icon: "success",
-        title: payload.mode === "CLEAR" ? "Cleared" : "Done",
-        html: `${escapeHtml(json.message || "Operation complete.")}<br><b>Updated cells:</b> ${json.updated_cells || 0}`
-      });
-
-      await loadRoster(currentPeriodStart);
-    } catch (err) {
-      console.error("doBulkRequest error:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Request failed",
-        text: err?.message || "Unknown error"
-      });
-    }
-  };
-
-  const bulkAssignFixed = async () => {
-    if (!currentRosterId) return;
-    if (!isEditableStatus(currentRosterStatus)) {
-      return toast("warning", `Roster locked: ${currentRosterStatus}`);
-    }
-    if (!selectedShift) return toast("info", "Select a shift first.");
-
-    const range = await askRangeModal();
-    if (!range) return;
-
-    const ok = await Swal.fire({
-      icon: "question",
-      title: "Bulk Fill",
-      html: `Apply <b>${escapeHtml(selectedShift)}</b> to <b>ALL department employees</b><br>from <b>${range.start}</b> to <b>${range.end}</b>?`,
-      showCancelButton: true,
-      confirmButtonText: "Apply",
-      cancelButtonText: "Cancel"
-    });
-
-    if (!ok.isConfirmed) return;
-
-    await doBulkRequest({
-      mode: "FIXED",
-      shift_code: selectedShift,
-      start_date: range.start,
-      end_date: range.end
-    });
-  };
-
-  const clearRange = async () => {
-    if (!currentRosterId) return;
-    if (!isEditableStatus(currentRosterStatus)) {
-      return toast("warning", `Roster locked: ${currentRosterStatus}`);
-    }
-
-    const range = await askRangeModal();
-    if (!range) return;
-
-    const ok = await Swal.fire({
-      icon: "warning",
-      title: "Clear Range",
-      html: `Remove all assigned shifts for <b>ALL department employees</b><br>from <b>${range.start}</b> to <b>${range.end}</b>?`,
-      showCancelButton: true,
-      confirmButtonText: "Yes, clear",
-      cancelButtonText: "Cancel"
-    });
-
-    if (!ok.isConfirmed) return;
-
-    await doBulkRequest({
-      mode: "CLEAR",
-      start_date: range.start,
-      end_date: range.end
-    });
-  };
-
-  const getPeriodEndFromCache = () => {
-    if (!currentDatesCache.length) return null;
-    return currentDatesCache[currentDatesCache.length - 1].date;
-  };
-
-  const applyAiSuggestionsPreview = (suggestions = []) => {
-    if (!Array.isArray(suggestions) || !suggestions.length) return 0;
-
-    let appliedCount = 0;
-
-    suggestions.forEach((item) => {
-      const empId = String(item.employee_id ?? "");
-      const workDate = String(item.work_date ?? "");
-      const shiftCode = String(item.shift_code ?? "").trim();
-
-      if (!empId || !workDate || !shiftCode) return;
-
-      const row = currentRowsCache.find((r) => String(r.EmployeeID) === empId);
-      if (!row) return;
-
-      const day = row.days?.find((d) => d.date === workDate);
-      if (!day) return;
-      if (day.is_leave) return;
-
-      const currentValue = String(day.value ?? "").trim();
-      if (currentValue && currentValue !== "-") return;
-
-      day.value = shiftCode;
-      day.ai_reason = item.reason || "";
-      day.ai_suggested = true;
-      appliedCount++;
-    });
-
-    renderRows(currentRowsCache, currentDatesCache);
-    updateStats(currentRowsCache);
-
-    return appliedCount;
-  };
-
-  const requestAiSuggestions = async () => {
-    if (!currentRosterId || !currentPeriodStart) {
-      return toast("warning", "Roster is not fully loaded yet.");
-    }
-
-    if (!isEditableStatus(currentRosterStatus)) {
-      return toast("warning", `Roster locked: ${currentRosterStatus}`);
-    }
-
-    const periodEnd = getPeriodEndFromCache();
-    if (!periodEnd) {
-      return toast("warning", "Could not detect current period end date.");
-    }
-
-    try {
-      Swal.fire({
-        title: "Generating AI suggestions...",
-        text: "Groq is analyzing your current roster.",
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
-
-      const res = await fetch("includes/ai_suggest_roster.php", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          roster_id: currentRosterId,
-          period_start: currentPeriodStart,
-          period_end: periodEnd
-        })
-      });
-
-      const json = await res.json();
-
-      if (!json.ok) {
-        throw new Error(json.message || "Failed to generate AI suggestions.");
-      }
-
-      Swal.close();
-
-      const ai = json.ai || {};
-      const suggestions = Array.isArray(ai.suggestions) ? ai.suggestions : [];
-      const previewCount = applyAiSuggestionsPreview(suggestions);
-
-      await Swal.fire({
-        icon: "success",
-        title: "AI Suggestions Ready",
-        html: `
-          <div style="text-align:left;">
-            <p><b>Summary:</b> ${escapeHtml(ai.summary || "AI suggestions generated successfully.")}</p>
-            <p><b>Previewed cells:</b> ${previewCount}</p>
-            <p style="margin-top:8px;opacity:.8;">
-              These are preview changes only. Leave dates are automatically skipped.
-            </p>
-          </div>
-        `
-      });
-    } catch (err) {
-      console.error("requestAiSuggestions error:", err);
-      Swal.fire({
-        icon: "error",
-        title: "AI Error",
-        text: err.message || "Something went wrong while generating AI suggestions."
-      });
-    }
-  };
-
-  searchInput?.addEventListener("input", () => applySearch(searchInput.value));
-
-  submitBtn?.addEventListener("click", async () => {
-    if (!currentRosterId) return;
-
-    if (!isEditableStatus(currentRosterStatus)) {
-      toast("warning", `Roster locked: ${currentRosterStatus}`);
-      return;
-    }
-
-    const confirm = await Swal.fire({
-      icon: "question",
-      title: "Submit to HR Manager?",
-      text: "After submit, editing will be locked.",
-      showCancelButton: true,
-      confirmButtonText: "Yes, submit",
-      cancelButtonText: "Cancel"
-    });
-
-    if (!confirm.isConfirmed) return;
-
-    try {
-      const form = new URLSearchParams();
-      form.set("roster_id", currentRosterId);
-
-      const res = await fetch("includes/submit_roster.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: form.toString()
-      });
-
-      const json = await res.json();
-
-      if (json.status !== "success") {
-        Swal.fire({
-          icon: "error",
-          title: "Submit failed",
-          text: json.message || "Submit failed"
-        });
-        return;
-      }
-
-      Swal.fire({
-        icon: "success",
-        title: "Submitted",
-        text: "Sent to HR Manager for review."
-      });
-
-      await loadRoster(currentPeriodStart);
-    } catch (err) {
-      console.error("submit roster error:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Network error",
-        text: "Please try again."
-      });
-    }
-  });
-
-  prevBtn?.addEventListener("click", () => {
-    if (!currentPeriodStart) return;
-    const { prev } = computePrevNextStart(currentPeriodStart);
-    loadRoster(prev);
-  });
-
-  nextBtn?.addEventListener("click", () => {
-    if (!currentPeriodStart) return;
-    const { next } = computePrevNextStart(currentPeriodStart);
-    loadRoster(next);
-  });
-
-  btnFillAll?.addEventListener("click", bulkAssignFixed);
-  btnClearRange?.addEventListener("click", clearRange);
-  btnAiSuggest?.addEventListener("click", requestAiSuggestions);
-
-  (async () => {
-    await loadShifts();
-    await loadRoster();
-
-    if (window.lucide) {
-      lucide.createIcons();
-    }
-  })();
+  bindEvents();
+  loadRoster();
 });
+
+function bindEvents() {
+  $("prevPeriod")?.addEventListener("click", () => changePeriod(-14));
+  $("nextPeriod")?.addEventListener("click", () => changePeriod(14));
+
+  $("btnFillAll")?.addEventListener("click", handleFillEditableRange);
+  $("btnClearRange")?.addEventListener("click", handleClearEditableRange);
+  $("btnAiSuggest")?.addEventListener("click", handleAiSuggestReview);
+
+  $("btnDismissAiReview")?.addEventListener("click", () => {
+    $("aiReviewPanel")?.classList.add("hidden");
+  });
+
+  $("submitToHR")?.addEventListener("click", submitRoster);
+
+  $("searchInput")?.addEventListener("input", (e) => {
+    state.searchTerm = (e.target.value || "").trim().toLowerCase();
+    renderRosterTable();
+  });
+
+  window.addEventListener("beforeunload", (e) => {
+    if (Object.keys(state.changedCells).length > 0 || state.isSaving) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
+}
+
+function changePeriod(days) {
+  if (!state.roster?.start_date) return;
+
+  const d = new Date(state.roster.start_date + "T00:00:00");
+  d.setDate(d.getDate() + days);
+
+  const newStart = normalizeMonday(formatDate(d));
+  loadRoster(newStart);
+}
+
+function normalizeMonday(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return formatDate(d);
+}
+
+function formatDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function statusClass(status) {
+  const s = String(status || "").toUpperCase();
+  if (s === "FOR_REVIEW") return "for-review";
+  if (s === "RETURNED") return "returned";
+  if (s === "APPROVED") return "approved";
+  if (s === "PUBLISHED") return "published";
+  return "draft";
+}
+
+function statusText(status) {
+  const s = String(status || "").toUpperCase();
+  if (s === "FOR_REVIEW") return "For Review";
+  if (s === "RETURNED") return "Returned";
+  if (s === "APPROVED") return "Approved";
+  if (s === "PUBLISHED") return "Published";
+  return "Draft";
+}
+
+function isRosterLocked() {
+  const s = String(state.roster?.status || "").toUpperCase();
+  return ["FOR_REVIEW", "APPROVED", "PUBLISHED"].includes(s);
+}
+
+async function loadRoster(startDate = null) {
+  try {
+    const targetStart = normalizeMonday(startDate || state.roster?.start_date || formatDate(new Date()));
+
+    setAutoSaveIndicator("Loading roster...", "loading");
+
+    const res = await fetch(`includes/roster_api.php?action=load&start_date=${encodeURIComponent(targetStart)}`);
+    const data = await res.json();
+
+    if (!data.success) {
+      Swal.fire("Error", data.message || "Failed to load roster.", "error");
+      setAutoSaveIndicator("Load failed", "error");
+      return;
+    }
+
+    state.roster = data.roster || null;
+    state.dates = data.dates || [];
+    state.employees = data.employees || [];
+    state.holidays = data.holidays || [];
+    state.holidayMeta = data.holiday_meta || {};
+    state.leaves = data.leaves || {};
+    state.assignments = data.assignments || {};
+    state.shifts = data.shifts || [];
+    state.today = data.today || null;
+    state.changedCells = {};
+    state.pendingAiAssignments = {};
+
+    if (!state.selectedShift && state.shifts.length > 0) {
+      state.selectedShift = state.shifts[0];
+    } else if (state.selectedShift) {
+      const found = state.shifts.find(s => s.code === state.selectedShift.code);
+      state.selectedShift = found || state.shifts[0] || null;
+    }
+
+    renderHeader();
+    renderStats();
+    renderShiftOptions();
+    renderRosterTable();
+    updateAiReviewPanel();
+    setAutoSaveIndicator("Auto-save ready", "ready");
+
+    if (window.lucide) lucide.createIcons();
+  } catch (error) {
+    Swal.fire("Error", error.message || "Something went wrong while loading roster.", "error");
+    setAutoSaveIndicator("Load failed", "error");
+  }
+}
+
+function renderHeader() {
+  const label = $("periodLabel");
+  const badge = $("headerRosterStatus");
+  const statStatus = $("statRosterStatus");
+
+  if (label && state.roster) {
+    label.textContent = `${state.roster.start_date} to ${state.roster.end_date}`;
+  }
+
+  if (badge) {
+    badge.className = `status-badge ${statusClass(state.roster?.status)}`;
+    badge.innerHTML = `
+      <i data-lucide="file-clock" class="meta-icon"></i>
+      ${escapeHtml(statusText(state.roster?.status))}
+    `;
+  }
+
+  if (statStatus) {
+    statStatus.textContent = statusText(state.roster?.status);
+  }
+
+  const submitBtn = $("submitToHR");
+  if (submitBtn) {
+    const locked = isRosterLocked();
+    submitBtn.disabled = locked;
+    submitBtn.classList.toggle("is-disabled", locked);
+
+    const span = submitBtn.querySelector("span");
+    if (span) {
+      span.textContent = locked ? "Submitted / Locked" : "Submit to HR Manager";
+    }
+  }
+}
+
+function renderStats() {
+  let unassigned = 0;
+
+  for (const emp of state.employees) {
+    for (const date of state.dates) {
+      if (!isEditableCell(emp, date)) continue;
+      const key = `${emp.EmployeeID}_${date}`;
+      if (!state.assignments[key]) {
+        unassigned++;
+      }
+    }
+  }
+
+  $("statEmployees").textContent = state.employees.length;
+  $("statCoverage").textContent = `${state.dates.length} days`;
+  $("statUnassigned").textContent = unassigned;
+  $("statRosterStatus").textContent = statusText(state.roster?.status);
+}
+
+function renderShiftOptions() {
+  const wrap = $("shiftSelector");
+  if (!wrap) return;
+
+  if (!state.shifts.length) {
+    wrap.innerHTML = `<div class="shift-loading">No active shifts found.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = "";
+
+  state.shifts.forEach((shift) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "shift-option" + (state.selectedShift?.code === shift.code ? " active" : "");
+    btn.dataset.code = shift.code;
+
+    btn.innerHTML = `
+      <span class="shift-color"></span>
+      <span class="shift-meta">
+        <strong>${escapeHtml(shift.label)}</strong>
+        <small>${escapeHtml(shift.time)}</small>
+        <small>${escapeHtml(shift.break_label || ((shift.break_mins || 0) + " mins break"))}</small>
+      </span>
+    `;
+
+    btn.addEventListener("click", () => {
+      state.selectedShift = shift;
+      document.querySelectorAll(".shift-option").forEach(el => el.classList.remove("active"));
+      btn.classList.add("active");
+    });
+
+    wrap.appendChild(btn);
+  });
+}
+
+function renderRosterTable() {
+  const head = $("rosterHead");
+  const body = $("rosterBody");
+  if (!head || !body) return;
+
+  const filteredEmployees = state.employees.filter(emp => {
+    if (!state.searchTerm) return true;
+    const hay = `${emp.name} ${emp.position || ""}`.toLowerCase();
+    return hay.includes(state.searchTerm);
+  });
+
+  head.innerHTML = "";
+  body.innerHTML = "";
+
+  const trHead = document.createElement("tr");
+  trHead.innerHTML =
+    `<th class="emp-col">Employee</th>` +
+    state.dates.map(date => {
+      const holiday = state.holidays.includes(date)
+        ? `<div class="holiday-badge">${escapeHtml(state.holidayMeta[date] || "Holiday")}</div>`
+        : "";
+      return `<th>${formatHeadDate(date)}${holiday}</th>`;
+    }).join("");
+  head.appendChild(trHead);
+
+  if (!filteredEmployees.length) {
+    body.innerHTML = `<tr><td colspan="${state.dates.length + 1}" style="padding:24px;text-align:center;">No employee matched your search.</td></tr>`;
+    return;
+  }
+
+  filteredEmployees.forEach(emp => {
+    const tr = document.createElement("tr");
+    if (emp.is_self) tr.classList.add("row-self");
+
+    let html = `
+      <td class="emp-col">
+        <div class="emp-name">
+          ${escapeHtml(emp.name)}
+          ${emp.is_self ? `<span class="badge-me">Me</span>` : ``}
+        </div>
+        <span class="emp-pos">${escapeHtml(emp.position || "Employee")}</span>
+      </td>
+    `;
+
+    html += state.dates.map(date => renderCell(emp, date)).join("");
+    tr.innerHTML = html;
+    body.appendChild(tr);
+  });
+
+  bindCellEvents();
+  if (window.lucide) lucide.createIcons();
+}
+
+function isEditableCell(emp, date) {
+  if (isRosterLocked()) return false;
+  if (emp.is_self && ROSTER_CTX.rules?.selfRowManualLocked) return false;
+
+  const key = `${emp.EmployeeID}_${date}`;
+  if (state.leaves[key] && ROSTER_CTX.rules?.leaveLocked) return false;
+  if (state.holidays.includes(date) && ROSTER_CTX.rules?.holidayLocked) return false;
+
+  return true;
+}
+
+function isAiAssignableCell(emp, date) {
+  if (isRosterLocked()) return false;
+
+  const key = `${emp.EmployeeID}_${date}`;
+  if (state.leaves[key] && ROSTER_CTX.rules?.leaveLocked) return false;
+  if (state.holidays.includes(date) && ROSTER_CTX.rules?.holidayLocked) return false;
+
+  return true;
+}
+
+function renderCell(emp, date) {
+  const key = `${emp.EmployeeID}_${date}`;
+  const assignment = state.assignments[key];
+  const leave = state.leaves[key];
+  const isHoliday = state.holidays.includes(date);
+  const editable = isEditableCell(emp, date);
+
+  let classes = [];
+  let content = "";
+
+  if (emp.is_self) classes.push("cell-self-locked");
+  if (leave) classes.push("cell-leave");
+  if (isHoliday) classes.push("cell-holiday");
+  if (!editable) classes.push("cell-locked");
+  if (editable) classes.push("cell-editable");
+
+  if (leave) {
+    content = `
+      <span class="pill leave">LEAVE</span>
+      <div class="leave-badge">${escapeHtml(leave.type || "Approved Leave")}</div>
+    `;
+  } else if (isHoliday) {
+    content = `<span class="pill holiday">HOLIDAY</span>`;
+  } else if (assignment) {
+    content = `
+      <span class="shift-pill ${escapeHtml(assignment.class || "shift-custom")}"
+            title="Break: ${Number(assignment.break_mins || 0)} mins | Grace: ${Number(assignment.grace_mins || 0)} mins">
+        ${escapeHtml(assignment.label || assignment.shift_code || "Set")}
+      </span>
+      ${assignment.break_mins ? `<small>${assignment.break_mins} min break</small>` : ``}
+    `;
+  } else {
+    content = `<span class="pill">Set</span>`;
+  }
+
+  const aiClass = assignment?.source === "ai" ? " ai-suggested" : "";
+
+  return `
+    <td class="${classes.join(" ")}${aiClass}"
+        data-employee-id="${emp.EmployeeID}"
+        data-date="${date}"
+        data-editable="${editable ? "1" : "0"}">
+      ${content}
+    </td>
+  `;
+}
+
+function bindCellEvents() {
+  document.querySelectorAll('#rosterBody td[data-editable="1"]').forEach(td => {
+    td.addEventListener("click", () => {
+      if (!state.selectedShift) {
+        Swal.fire("No shift selected", "Please select a shift first.", "info");
+        return;
+      }
+
+      const employeeId = Number(td.dataset.employeeId);
+      const date = td.dataset.date;
+      assignShift(employeeId, date, state.selectedShift, "manual");
+    });
+
+    td.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      const employeeId = Number(td.dataset.employeeId);
+      const date = td.dataset.date;
+      clearShift(employeeId, date);
+    });
+  });
+}
+
+function assignShift(employeeId, date, shift, source = "manual") {
+  const key = `${employeeId}_${date}`;
+
+  state.assignments[key] = {
+    shift_code: shift.code,
+    label: shift.label,
+    class: shift.class,
+    start_time: shift.start_time || null,
+    end_time: shift.end_time || null,
+    break_mins: Number(shift.break_mins || 0),
+    grace_mins: Number(shift.grace_mins || 0),
+    is_day_off: Number(shift.is_day_off || 0),
+    source
+  };
+
+  state.changedCells[key] = {
+    employee_id: employeeId,
+    work_date: date,
+    shift_code: shift.code,
+    source
+  };
+
+  renderRosterTable();
+  renderStats();
+  updateAiReviewPanel();
+  queueAutoSave();
+}
+
+function assignShiftSilently(employeeId, date, shift, source = "manual") {
+  const key = `${employeeId}_${date}`;
+
+  state.assignments[key] = {
+    shift_code: shift.code,
+    label: shift.label,
+    class: shift.class,
+    start_time: shift.start_time || null,
+    end_time: shift.end_time || null,
+    break_mins: Number(shift.break_mins || 0),
+    grace_mins: Number(shift.grace_mins || 0),
+    is_day_off: Number(shift.is_day_off || 0),
+    source
+  };
+
+  state.changedCells[key] = {
+    employee_id: employeeId,
+    work_date: date,
+    shift_code: shift.code,
+    source
+  };
+}
+
+function clearShift(employeeId, date) {
+  const key = `${employeeId}_${date}`;
+
+  delete state.assignments[key];
+  state.changedCells[key] = {
+    employee_id: employeeId,
+    work_date: date,
+    shift_code: "",
+    source: "manual"
+  };
+
+  renderRosterTable();
+  renderStats();
+  updateAiReviewPanel();
+  queueAutoSave();
+}
+
+function handleFillEditableRange() {
+  if (isRosterLocked()) return;
+
+  if (!state.selectedShift) {
+    Swal.fire("No shift selected", "Please select a shift first.", "info");
+    return;
+  }
+
+  let count = 0;
+
+  state.employees.forEach(emp => {
+    state.dates.forEach(date => {
+      if (!isEditableCell(emp, date)) return;
+      assignShiftSilently(emp.EmployeeID, date, state.selectedShift, "manual");
+      count++;
+    });
+  });
+
+  renderRosterTable();
+  renderStats();
+  updateAiReviewPanel();
+  queueAutoSave();
+
+  Swal.fire("Filled", `${count} editable cell(s) were updated.`, "success");
+}
+
+function handleClearEditableRange() {
+  if (isRosterLocked()) return;
+
+  Swal.fire({
+    title: "Clear current roster range?",
+    text: "This will clear all editable assignments, including AI-applied shifts and your officer row schedule for this period where applicable.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, clear all",
+    cancelButtonText: "Cancel"
+  }).then(result => {
+    if (!result.isConfirmed) return;
+
+    let count = 0;
+
+    state.employees.forEach(emp => {
+      state.dates.forEach(date => {
+        const key = `${emp.EmployeeID}_${date}`;
+        const hasAssignment = !!state.assignments[key];
+        if (!hasAssignment) return;
+
+        const leave = state.leaves[key];
+        const holiday = state.holidays.includes(date);
+
+        if (leave && ROSTER_CTX.rules?.leaveLocked) return;
+        if (holiday && ROSTER_CTX.rules?.holidayLocked) return;
+        if (isRosterLocked()) return;
+
+        delete state.assignments[key];
+        state.changedCells[key] = {
+          employee_id: emp.EmployeeID,
+          work_date: date,
+          shift_code: "",
+          source: emp.is_self ? "clear_range" : "manual"
+        };
+        count++;
+      });
+    });
+
+    renderRosterTable();
+    renderStats();
+    updateAiReviewPanel();
+    queueAutoSave();
+
+    Swal.fire("Cleared", `${count} assignment(s) were cleared from this period.`, "success");
+  });
+}
+
+function queueAutoSave() {
+  clearTimeout(state.autoSaveTimer);
+  setAutoSaveIndicator("Unsaved changes...", "dirty");
+
+  state.autoSaveTimer = setTimeout(() => {
+    saveDraft(true);
+  }, AUTO_SAVE_DELAY);
+}
+
+function setAutoSaveIndicator(text, mode = "ready") {
+  const box = $("autoSaveIndicator");
+  if (!box) return;
+
+  box.className = `mini-info autosave-${mode}`;
+  box.innerHTML = `<i data-lucide="save" class="meta-icon"></i> ${escapeHtml(text)}`;
+
+  if (window.lucide) lucide.createIcons();
+}
+
+async function saveDraft(silent = false) {
+  const cells = Object.values(state.changedCells);
+  if (!state.roster?.id || cells.length === 0 || isRosterLocked()) return true;
+  if (state.isSaving) return false;
+
+  state.isSaving = true;
+  setAutoSaveIndicator("Saving draft...", "saving");
+
+  try {
+    const res = await fetch("includes/roster_api.php?action=save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        roster_id: state.roster.id,
+        cells
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      state.isSaving = false;
+      setAutoSaveIndicator("Save failed", "error");
+      if (!silent) {
+        Swal.fire("Save failed", data.message || "Unable to save roster draft.", "error");
+      }
+      return false;
+    }
+
+    state.changedCells = {};
+    state.isSaving = false;
+    setAutoSaveIndicator("Draft auto-saved", "saved");
+
+    if (!silent) {
+      Swal.fire("Saved", data.message || "Roster draft saved.", "success");
+    }
+
+    return true;
+  } catch (error) {
+    state.isSaving = false;
+    setAutoSaveIndicator("Save failed", "error");
+    if (!silent) {
+      Swal.fire("Error", error.message || "Failed to save draft.", "error");
+    }
+    return false;
+  }
+}
+
+function detectDominantWeekShift(employeeId, weekDates) {
+  const counts = { AM: 0, MD: 0, GY: 0 };
+
+  weekDates.forEach(date => {
+    const key = `${employeeId}_${date}`;
+    const a = state.assignments[key];
+    if (!a) return;
+    const code = String(a.shift_code || "").toUpperCase();
+    if (counts[code] !== undefined) counts[code]++;
+  });
+
+  let bestCode = null;
+  let bestCount = 0;
+
+  Object.keys(counts).forEach(code => {
+    if (counts[code] > bestCount) {
+      bestCode = code;
+      bestCount = counts[code];
+    }
+  });
+
+  if (!bestCode) return null;
+  return state.shifts.find(s => String(s.code).toUpperCase() === bestCode) || null;
+}
+
+function buildAiSuggestions() {
+  state.pendingAiAssignments = {};
+
+  const workShiftPool = state.shifts.filter(s =>
+    ["AM", "MD", "GY"].includes(String(s.code).toUpperCase())
+  );
+
+  if (!workShiftPool.length) return;
+
+  const week1Dates = state.dates.slice(0, 6);
+  const week2Dates = state.dates.slice(6, 12);
+
+  const globalWeek1Count = { AM: 0, MD: 0, GY: 0 };
+  const globalWeek2Count = { AM: 0, MD: 0, GY: 0 };
+
+  state.employees.forEach(emp => {
+    week1Dates.forEach(date => {
+      const key = `${emp.EmployeeID}_${date}`;
+      const a = state.assignments[key];
+      if (!a) return;
+      const code = String(a.shift_code || "").toUpperCase();
+      if (globalWeek1Count[code] !== undefined) globalWeek1Count[code]++;
+    });
+
+    week2Dates.forEach(date => {
+      const key = `${emp.EmployeeID}_${date}`;
+      const a = state.assignments[key];
+      if (!a) return;
+      const code = String(a.shift_code || "").toUpperCase();
+      if (globalWeek2Count[code] !== undefined) globalWeek2Count[code]++;
+    });
+  });
+
+  state.employees.forEach(emp => {
+    const empId = emp.EmployeeID;
+
+    const week1EditableDates = week1Dates.filter(date => {
+      const key = `${empId}_${date}`;
+      if (!isAiAssignableCell(emp, date)) return false;
+      return !state.assignments[key];
+    });
+
+    const week2EditableDates = week2Dates.filter(date => {
+      const key = `${empId}_${date}`;
+      if (!isAiAssignableCell(emp, date)) return false;
+      return !state.assignments[key];
+    });
+
+    const existingWeek1 = detectDominantWeekShift(empId, week1Dates);
+    const existingWeek2 = detectDominantWeekShift(empId, week2Dates);
+
+    let week1Shift = existingWeek1;
+    let week2Shift = existingWeek2;
+
+    if (!week1Shift) {
+      week1Shift = [...workShiftPool]
+        .sort((a, b) => globalWeek1Count[a.code] - globalWeek1Count[b.code])[0];
+      if (week1Shift) globalWeek1Count[week1Shift.code]++;
+    }
+
+    if (!week2Shift || (week1Shift && week2Shift.code === week1Shift.code)) {
+      const choices = [...workShiftPool]
+        .filter(s => !week1Shift || s.code !== week1Shift.code)
+        .sort((a, b) => globalWeek2Count[a.code] - globalWeek2Count[b.code]);
+
+      week2Shift = choices[0] || week2Shift || week1Shift;
+      if (week2Shift) globalWeek2Count[week2Shift.code]++;
+    }
+
+    week1EditableDates.forEach(date => {
+      if (!week1Shift) return;
+      const key = `${empId}_${date}`;
+      state.pendingAiAssignments[key] = {
+        employee_id: empId,
+        work_date: date,
+        shift_code: week1Shift.code
+      };
+    });
+
+    week2EditableDates.forEach(date => {
+      if (!week2Shift) return;
+      const key = `${empId}_${date}`;
+      state.pendingAiAssignments[key] = {
+        employee_id: empId,
+        work_date: date,
+        shift_code: week2Shift.code
+      };
+    });
+  });
+}
+
+async function handleAiSuggestReview() {
+  if (isRosterLocked()) {
+    Swal.fire("Locked", "This roster can no longer be changed.", "info");
+    return;
+  }
+
+  buildAiSuggestions();
+
+  const entries = Object.values(state.pendingAiAssignments);
+  if (!entries.length) {
+    updateAiReviewPanel();
+    $("aiReviewPanel")?.classList.remove("hidden");
+    Swal.fire("No AI changes", "No editable empty cells were available for AI scheduling.", "info");
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: "Apply AI schedule?",
+    html: `
+      <div style="text-align:left">
+        <p style="margin-bottom:8px;">AI will apply weekly shift rotation to available cells in this 2-week period.</p>
+        <ul style="text-align:left; padding-left:18px; margin:0;">
+          <li>Only unlocked cells will be changed</li>
+          <li>Leave dates will stay blocked</li>
+          <li>Holiday locked dates will stay blocked</li>
+          <li>Your officer row may also receive AI assignment</li>
+        </ul>
+      </div>
+    `,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Yes, apply AI",
+    cancelButtonText: "Cancel"
+  });
+
+  if (!result.isConfirmed) {
+    state.pendingAiAssignments = {};
+    return;
+  }
+
+  let appliedCount = 0;
+
+  for (const item of entries) {
+    const shift = state.shifts.find(s => s.code === item.shift_code);
+    if (!shift) continue;
+    assignShiftSilently(item.employee_id, item.work_date, shift, "ai");
+    appliedCount++;
+  }
+
+  state.pendingAiAssignments = {};
+  renderRosterTable();
+  renderStats();
+  updateAiReviewPanel();
+  $("aiReviewPanel")?.classList.remove("hidden");
+  queueAutoSave();
+
+  Swal.fire("AI Applied", `${appliedCount} schedule cell(s) were updated by AI. Review the summary below.`, "success");
+}
+
+function calculateAiReview() {
+  let editableCells = 0;
+  let assignedEditable = 0;
+  let leaveConflicts = 0;
+  let holidayConflicts = 0;
+
+  const employeeShiftCounts = {};
+
+  state.employees.forEach(emp => {
+    employeeShiftCounts[emp.EmployeeID] = { AM: 0, MD: 0, GY: 0 };
+
+    state.dates.forEach(date => {
+      const key = `${emp.EmployeeID}_${date}`;
+      const assignment = state.assignments[key];
+      const leave = state.leaves[key];
+      const holiday = state.holidays.includes(date);
+
+      if (assignment && employeeShiftCounts[emp.EmployeeID][assignment.shift_code] !== undefined) {
+        employeeShiftCounts[emp.EmployeeID][assignment.shift_code]++;
+      }
+
+      if (leave && assignment) {
+        leaveConflicts++;
+      }
+
+      if (holiday && assignment) {
+        holidayConflicts++;
+      }
+
+      if (isEditableCell(emp, date)) {
+        editableCells++;
+        if (assignment) assignedEditable++;
+      }
+    });
+  });
+
+  const unassignedRemaining = Math.max(0, editableCells - assignedEditable);
+  const coverageScore = editableCells === 0 ? 100 : Math.round((assignedEditable / editableCells) * 100);
+
+  let fairnessPenalty = 0;
+
+  state.employees.forEach(emp => {
+    const w1 = detectDominantWeekShift(emp.EmployeeID, state.dates.slice(0, 6));
+    const w2 = detectDominantWeekShift(emp.EmployeeID, state.dates.slice(6, 12));
+
+    if (w1 && w2 && w1.code === w2.code) {
+      fairnessPenalty += 20;
+    }
+
+    if (!w1) fairnessPenalty += 10;
+    if (!w2) fairnessPenalty += 10;
+  });
+
+  let fairnessScore = Math.max(0, 100 - fairnessPenalty);
+
+  let complianceScore = 100;
+  complianceScore -= leaveConflicts * 50;
+  complianceScore -= holidayConflicts * 20;
+  if (complianceScore < 0) complianceScore = 0;
+
+  const warnings = [];
+  const errors = [];
+
+  if (unassignedRemaining > 0) {
+    warnings.push(`${unassignedRemaining} editable slot(s) are still unassigned.`);
+  }
+
+  if (coverageScore < 100) {
+    warnings.push(`Coverage is incomplete for this 2-week period.`);
+  }
+
+  state.employees.forEach(emp => {
+    const w1 = detectDominantWeekShift(emp.EmployeeID, state.dates.slice(0, 6));
+    const w2 = detectDominantWeekShift(emp.EmployeeID, state.dates.slice(6, 12));
+
+    if (w1 && w2 && w1.code === w2.code) {
+      warnings.push(`${emp.name} has the same shift for both weeks.`);
+    }
+  });
+
+  if (leaveConflicts > 0) {
+    errors.push(`${leaveConflicts} leave conflict(s) detected. Leave dates must remain unscheduled.`);
+  }
+
+  if (holidayConflicts > 0) {
+    errors.push(`${holidayConflicts} holiday assignment(s) detected on locked holiday dates.`);
+  }
+
+  if (!state.employees.some(e => e.is_self)) {
+    warnings.push(`Officer self row is not included in the loaded roster.`);
+  }
+
+  return {
+    employeesIncluded: state.employees.length,
+    selfIncluded: state.employees.some(e => e.is_self),
+    fairnessScore,
+    coverageScore,
+    complianceScore,
+    unassignedRemaining,
+    warnings,
+    errors
+  };
+}
+
+function updateAiReviewPanel() {
+  const review = calculateAiReview();
+
+  $("aiEmployeesIncluded").textContent = review.employeesIncluded;
+  $("aiSelfIncluded").textContent = review.selfIncluded ? "Yes" : "No";
+  $("aiFairnessScore").textContent = `${review.fairnessScore}%`;
+  $("aiCoverageScore").textContent = `${review.coverageScore}%`;
+  $("aiComplianceScore").textContent = `${review.complianceScore}%`;
+  $("aiUnassignedRemaining").textContent = review.unassignedRemaining;
+
+  $("aiWarningsList").innerHTML = review.warnings.length
+    ? review.warnings.map(item => `<li>${escapeHtml(item)}</li>`).join("")
+    : `<li>No warnings found.</li>`;
+
+  $("aiErrorsList").innerHTML = review.errors.length
+    ? review.errors.map(item => `<li>${escapeHtml(item)}</li>`).join("")
+    : `<li>No errors or conflicts found.</li>`;
+}
+
+async function submitRoster() {
+  if (!state.roster?.id) {
+    Swal.fire("Error", "Roster ID is missing.", "error");
+    return;
+  }
+
+  if (isRosterLocked()) {
+    Swal.fire("Locked", "This roster is already submitted or finalized.", "info");
+    return;
+  }
+
+  const review = calculateAiReview();
+  if (review.errors.length > 0) {
+    $("aiReviewPanel")?.classList.remove("hidden");
+    Swal.fire("Cannot submit", "Please fix the conflicts shown in AI Review first.", "error");
+    return;
+  }
+
+  if (Object.keys(state.changedCells).length > 0) {
+    const saved = await saveDraft(true);
+    if (!saved) {
+      Swal.fire("Save first", "Draft save failed. Please try again.", "error");
+      return;
+    }
+  }
+
+  if (review.unassignedRemaining > 0) {
+    const result = await Swal.fire({
+      title: "There are still unassigned slots",
+      text: "Do you still want to submit this roster to HR Manager?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, submit"
+    });
+
+    if (!result.isConfirmed) return;
+  }
+
+  try {
+    const res = await fetch("includes/roster_api.php?action=submit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        roster_id: state.roster.id
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      Swal.fire("Submit failed", data.message || "Unable to submit roster.", "error");
+      return;
+    }
+
+    Swal.fire("Submitted", data.message || "Roster submitted to HR Manager.", "success");
+    loadRoster(state.roster.start_date);
+  } catch (error) {
+    Swal.fire("Error", error.message || "Submit failed.", "error");
+  }
+}
+
+function formatHeadDate(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const weekday = d.toLocaleDateString("en-US", { weekday: "short" });
+  const monthDay = d.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+  return `${weekday}<br><small>${monthDay}</small>`;
+}

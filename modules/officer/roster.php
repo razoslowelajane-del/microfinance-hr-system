@@ -43,6 +43,11 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
           <i data-lucide="calendar-range" class="meta-icon"></i>
           2 full work weeks (Mon–Sat)
         </span>
+
+        <span class="mini-info autosave-ready" id="autoSaveIndicator">
+          <i data-lucide="save" class="meta-icon"></i>
+          Auto-save ready
+        </span>
       </div>
     </div>
 
@@ -74,7 +79,7 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
           <i data-lucide="users" class="stat-icon"></i>
         </div>
         <strong class="stat-value" id="statEmployees">--</strong>
-        <p class="stat-subtext">Valid department employees included in this roster</p>
+        <p class="stat-subtext">Employees under your department roster scope</p>
       </div>
 
       <div class="stat-card">
@@ -83,7 +88,7 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
           <i data-lucide="calendar-days" class="stat-icon"></i>
         </div>
         <strong class="stat-value" id="statCoverage">--</strong>
-        <p class="stat-subtext">Fixed 2-week Monday–Saturday work schedule</p>
+        <p class="stat-subtext">Fixed 2-week Monday–Saturday schedule</p>
       </div>
 
       <div class="stat-card">
@@ -101,7 +106,7 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
           <i data-lucide="clipboard-check" class="stat-icon"></i>
         </div>
         <strong class="stat-value" id="statRosterStatus">Draft</strong>
-        <p class="stat-subtext">Create, review, then submit to HR Manager</p>
+        <p class="stat-subtext">Draft, return, submit, and review flow</p>
       </div>
     </div>
 
@@ -155,7 +160,7 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
 
             <button class="btn-secondary" id="btnAiSuggest" type="button">
               <i data-lucide="sparkles"></i>
-              <span>AI Suggest &amp; Review</span>
+              <span>AI Apply &amp; Review</span>
             </button>
 
             <button class="btn-secondary" id="btnClearRange" type="button">
@@ -197,19 +202,14 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
         <div id="aiReviewPanel" class="ai-review-panel hidden">
           <div class="ai-review-head">
             <div>
-              <h4>AI Review Summary</h4>
-              <p>Review AI suggestions, fairness, coverage, and warnings before applying changes.</p>
+              <h4>AI Post-Apply Review</h4>
+              <p>This summary reflects the schedule after AI suggestions were applied.</p>
             </div>
 
             <div class="ai-review-actions">
               <button type="button" class="btn-secondary" id="btnDismissAiReview">
                 <i data-lucide="x"></i>
                 <span>Dismiss</span>
-              </button>
-
-              <button type="button" class="btn-primary" id="btnApplyAiSuggestions">
-                <i data-lucide="check-check"></i>
-                <span>Apply Suggestions</span>
               </button>
             </div>
           </div>
@@ -272,7 +272,7 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
         <div class="helper-note">
           <i data-lucide="info"></i>
           <span>
-            Your own row is included in the roster and may be auto-filled by AI, but it is locked for manual editing. Sundays are skipped. Approved leave dates appear as LEAVE and cannot be scheduled.
+            Your own row is included in the roster. It is locked for manual editing, but AI may assign your shift automatically. Sundays are skipped. Approved leave dates appear as LEAVE and cannot be scheduled.
           </span>
         </div>
       </div>
@@ -291,8 +291,7 @@ $myEmpId    = $_SESSION['employee_id'] ?? $_SESSION['EmployeeID'] ?? null;
       skipSunday: true,
       selfRowManualLocked: true,
       leaveLocked: true,
-      holidayLocked: true,
-      aiReviewFirst: true
+      holidayLocked: true
     }
   };
 
