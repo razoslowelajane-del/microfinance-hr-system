@@ -240,6 +240,7 @@ function recomputeEmployeeSummary(mysqli $conn, int $periodId, int $employeeId):
     $absencesHours = 0.00;
     $paidLeaveHours = 0.00;
     $unpaidLeaveHours = 0.00;
+
     $totalPayableHours = round(
         $regularHours +
         $overtimeHours +
@@ -303,8 +304,9 @@ function recomputeEmployeeSummary(mysqli $conn, int $periodId, int $employeeId):
         }
 
         $notes = "Auto-recomputed from attendance and timesheet daily.";
+
         $updateStmt->bind_param(
-            "iiiidddddddiidddds",
+            "iidddddddiiddddsi",
             $departmentId,
             $positionId,
             $regularHours,
@@ -383,8 +385,9 @@ function recomputeEmployeeSummary(mysqli $conn, int $periodId, int $employeeId):
         }
 
         $notes = "Auto-created from attendance and timesheet daily.";
+
         $insertStmt->bind_param(
-            "iiiisssssiissssss",
+            "iiiidddddddiidddds",
             $periodId,
             $employeeId,
             $departmentId,
@@ -866,7 +869,7 @@ try {
                 $breakActualNull = null;
 
                 $insertDayStmt->bind_param(
-                    "sssssssssssss",
+                    "iisiisssissi",
                     $periodId,
                     $employeeId,
                     $today,
@@ -926,7 +929,7 @@ try {
                 $dayStatus = ($shiftCode && $scheduledStart && $scheduledEnd) ? 'INCOMPLETE' : 'NO_SCHEDULE';
 
                 $updateStmt->bind_param(
-                    "ssssssssi",
+                    "iisssissi",
                     $assignmentId,
                     $sessionId,
                     $shiftCode,
@@ -967,7 +970,7 @@ try {
                 $dayStatus = ($shiftCode && $scheduledStart && $scheduledEnd) ? 'INCOMPLETE' : 'NO_SCHEDULE';
 
                 $updateStmt->bind_param(
-                    "sssssssi",
+                    "iisssisi",
                     $assignmentId,
                     $sessionId,
                     $shiftCode,
@@ -1068,10 +1071,8 @@ try {
                         $actualOutTs = strtotime($actualTimeOut);
                         $schedEndTs = strtotime($scheduledEndDT);
 
-                        if ($actualOutTs !== false && $schedEndTs !== false) {
-                            if ($actualOutTs < $schedEndTs) {
-                                $undertimeMinutes = (int) floor(($schedEndTs - $actualOutTs) / 60);
-                            }
+                        if ($actualOutTs !== false && $schedEndTs !== false && $actualOutTs < $schedEndTs) {
+                            $undertimeMinutes = (int) floor(($schedEndTs - $actualOutTs) / 60);
                         }
                     }
 
@@ -1116,7 +1117,7 @@ try {
                 }
 
                 $finalUpdateStmt->bind_param(
-                    "ssssssiiiiiiisi",
+                    "iisssisiiiiisi",
                     $assignmentId,
                     $sessionId,
                     $shiftCode,
