@@ -869,7 +869,7 @@ try {
                 $breakActualNull = null;
 
                 $insertDayStmt->bind_param(
-                    "iisiisssissi",
+                    "iisiisssissis",
                     $periodId,
                     $employeeId,
                     $today,
@@ -1117,7 +1117,7 @@ try {
                 }
 
                 $finalUpdateStmt->bind_param(
-                    "iisssisiiiiisi",
+                    "iisssisiiiiiisi",
                     $assignmentId,
                     $sessionId,
                     $shiftCode,
